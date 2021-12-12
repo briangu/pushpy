@@ -51,7 +51,9 @@ def main_thread(args, mainctrl, log):
         log.info("ARGS:{0}".format(args))
 
     try:
-        loader.load_and_run(main_path, mainctrl)
+        with open(main_path, "r") as f:
+            module_name = f.read()
+        loader.load_and_run(module_name, log, mainctrl)
     except KeyboardInterrupt as ke:
         if verbose:
             log.warning("Interrupting...")
