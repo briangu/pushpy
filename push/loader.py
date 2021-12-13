@@ -39,7 +39,7 @@ def load_pyz(m):
     context = module.__dict__.copy()
     with zipfile.ZipFile(m, "r") as zip_ref:
         zip_ref.extractall(tmp_path)
-        exec(zip_ref.read("main.py"), context)
+        exec(zip_ref.read("__main__.py"), context)
     sys.path.pop(0)
     return context
 
