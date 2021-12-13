@@ -3,6 +3,8 @@
 import os, sys
 import threading
 import time
+import uuid
+
 import daemon
 import daemon.pidfile
 import argparse
@@ -10,9 +12,9 @@ import signal
 import logging
 
 # adapted from https://raw.githubusercontent.com/ggmartins/dataengbb/master/python/daemon/daemon1
-from push import loader
+from push.loader import ensure_path, load_and_run
 
-PATHCTRL = '/tmp/'  # path to control files pid and lock
+PATHCTRL = '/tmp/push'  # path to control files pid and lock
 parser = argparse.ArgumentParser(prog="monitor")
 
 sp = parser.add_subparsers()
@@ -53,7 +55,7 @@ def main_thread(args, mainctrl, log):
     try:
         with open(main_path, "r") as f:
             module_name = f.read()
-        loader.load_and_run(module_name, log, mainctrl)
+        load_and_run(tmp_path, module_name, log, mainctrl)
     except KeyboardInterrupt as ke:
         if verbose:
             log.warning("Interrupting...")
@@ -78,7 +80,7 @@ def daemon_start(args):
         with open(main_path, "w") as f:
             f.write(args.path)
 
-    print("INFO: {0} Starting ...".format(args.name))
+    print(f"INFO: {args.name} Starting ... {tmp_path}")
     if os.path.exists(pidpath):
         print("INFO: {0} already running (according to {1}).".format(args.name, pidpath))
         sys.exit(1)
@@ -160,11 +162,14 @@ sp_debug.set_defaults(callback=daemon_debug)
 
 args = parser.parse_args()
 
-logpath = os.path.join(PATHCTRL, args.name + ".log")
-log_stdout = os.path.join(PATHCTRL, args.name + ".out")
-log_stderr = os.path.join(PATHCTRL, args.name + ".err")
-pidpath = os.path.join(PATHCTRL, args.name + ".pid")
-main_path = os.path.join(PATHCTRL, args.name + ".main.path")
+tmp_path = os.path.join(PATHCTRL, args.name)
+ensure_path(tmp_path)
+
+logpath = os.path.join(tmp_path, args.name + ".log")
+log_stdout = os.path.join(tmp_path, args.name + ".out")
+log_stderr = os.path.join(tmp_path, args.name + ".err")
+pidpath = os.path.join(tmp_path, args.name + ".pid")
+main_path = os.path.join(tmp_path, args.name + ".main.path")
 
 if hasattr(args, 'callback'):
     args.callback(args)

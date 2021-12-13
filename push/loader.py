@@ -6,6 +6,9 @@ from types import ModuleType
 
 
 # python -m zipapp d -m 'lockd:main'
+# or if there's already a __main__.py then just
+# python -m zipapp d
+
 # def load_pyz(m):
 #     module = ModuleType('lock')
 #     context = module.__dict__.copy()
@@ -31,15 +34,20 @@ def ensure_path(p):
     pathlib.Path(p).mkdir(parents=True, exist_ok=True)
 
 
-def load_pyz(m):
-    tmp_path = f'/tmp/push/{uuid.uuid4()}'
+def load_pyz(tmp_path, m):
+    tmp_id = str(uuid.uuid4())
+    tmp_path = os.path.join(tmp_path, 'pyz', str(tmp_id))
     ensure_path(tmp_path)
     sys.path.insert(0, tmp_path)
-    module = ModuleType('lock')
+    module = ModuleType(tmp_id)
     context = module.__dict__.copy()
     with zipfile.ZipFile(m, "r") as zip_ref:
         zip_ref.extractall(tmp_path)
-        exec(zip_ref.read("__main__.py"), context)
+        try:
+            exec(zip_ref.read("__main__.py"), context)
+        except Exception as e:
+            print(e)
+            raise e
     sys.path.pop(0)
     return context
 
@@ -55,16 +63,16 @@ def load_py(m):
 # TODO: make relative imports work
 # https://stackoverflow.com/questions/16981921/relative-imports-in-python-3
 # https://stackoverflow.com/questions/19850143/how-to-compile-a-string-of-python-code-into-a-module-whose-functions-can-be-call
-def load(m):
+def load(tmp_path, m):
     print(m)
     if isinstance(m, str):
         if m.endswith(".pyz"):
-            return load_pyz(m)
+            return load_pyz(tmp_path, m)
         elif m.endswith(".py"):
             return load_py(m)
 
 
-def load_and_run(m, log, *args, **kwargs):
+def load_and_run(tmp_path, m, log, *args, **kwargs):
     if not os.path.exists(m):
         orig_m = m
         m = os.path.join(os.path.dirname(__file__), m)
@@ -73,7 +81,7 @@ def load_and_run(m, log, *args, **kwargs):
             log.error(f"module not found: {m}")
             raise RuntimeError(f"module not found: {m}")
     log.info(f"loading and running: {m}")
-    context = load(m)
+    context = load(tmp_path, m)
     print(context['main'])
     # this will use the context provided in exec
     if 'main' not in context:
