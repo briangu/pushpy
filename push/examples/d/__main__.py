@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import asyncio
+import logging
 import threading
 import time
 
@@ -9,10 +10,28 @@ import tornado.web
 from lock import Lock
 from pysyncobj import SyncObjConf
 
+from push.loader import load_and_run
+
+
+class MainCtrl:
+    thread_continue = True
+    # thread_token = "token"
+
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, world")
+
+    def post(self):
+        m = self.request.body_arguments.get('m')
+        if m is not None:
+            m = m[0].decode("utf-8")
+            print(f"PATH: {m}")
+            log = logging.getLogger(__name__)
+            mainctrl = MainCtrl()
+            tmp_path = "/tmp"
+            load_and_run(tmp_path, m, log, mainctrl)
+        self.write(str(m))
 
 
 class StatusHandler(tornado.web.RequestHandler):
@@ -52,6 +71,7 @@ async def wait_for_exit(main_control):
         await asyncio.sleep(1)
 
 
+# TODO: we need logger, main_control, and tmp_path
 def main(main_control):
     print(f"{threading.get_ident()} main")
 

@@ -34,6 +34,25 @@ def ensure_path(p):
     pathlib.Path(p).mkdir(parents=True, exist_ok=True)
 
 
+def load_dir(tmp_path, m):
+    tmp_id = str(uuid.uuid4())
+    # print(tmp_path)
+    # tmp_path = os.path.join(tmp_path, 'pyz', str(tmp_id))
+    # ensure_path(tmp_path)
+    sys.path.insert(0, m)
+    module = ModuleType(tmp_id)
+    context = module.__dict__.copy()
+    with open(os.path.join(m, "__main__.py"), "r") as f:
+        d = f.read()
+    try:
+        exec(d, context)
+    except Exception as e:
+        print(f"FAILURE: {e}")
+        raise e
+    sys.path.pop(0)
+    return context
+
+
 def load_pyz(tmp_path, m):
     tmp_id = str(uuid.uuid4())
     tmp_path = os.path.join(tmp_path, 'pyz', str(tmp_id))
@@ -43,6 +62,7 @@ def load_pyz(tmp_path, m):
     context = module.__dict__.copy()
     with zipfile.ZipFile(m, "r") as zip_ref:
         zip_ref.extractall(tmp_path)
+        # TODO: call load_dir with extracted zip
         try:
             exec(zip_ref.read("__main__.py"), context)
         except Exception as e:
@@ -65,7 +85,9 @@ def load_py(m):
 # https://stackoverflow.com/questions/19850143/how-to-compile-a-string-of-python-code-into-a-module-whose-functions-can-be-call
 def load(tmp_path, m):
     print(m)
-    if isinstance(m, str):
+    if os.path.isdir(m):
+        return load_dir(tmp_path, m)
+    elif isinstance(m, str):
         if m.endswith(".pyz"):
             return load_pyz(tmp_path, m)
         elif m.endswith(".py"):
