@@ -1,18 +1,46 @@
 import os
+import sys
+import uuid
 import zipfile
 from types import ModuleType
 
 
 # python -m zipapp d -m 'lockd:main'
+# def load_pyz(m):
+#     module = ModuleType('lock')
+#     context = module.__dict__.copy()
+#     with zipfile.ZipFile(m, "r") as zip_ref:
+#         # zip_ref.extractall('/tmp/process')
+#         order = list(zip_ref.namelist())
+#         print(order)
+#         while len(order) > 0:
+#             n = order.pop()
+#             print(n)
+#             if n == '__main__.py':
+#                 continue
+#             try:
+#                 print(context.keys())
+#                 exec(zip_ref.read(n), context)
+#             except Exception as e:
+#                 print(e)
+#                 order.insert(0, n)
+#     return context
+
+def ensure_path(p):
+    import pathlib
+    pathlib.Path(p).mkdir(parents=True, exist_ok=True)
+
+
 def load_pyz(m):
-    module = ModuleType(m)
+    tmp_path = f'/tmp/push/{uuid.uuid4()}'
+    ensure_path(tmp_path)
+    sys.path.insert(0, tmp_path)
+    module = ModuleType('lock')
     context = module.__dict__.copy()
     with zipfile.ZipFile(m, "r") as zip_ref:
-        # zip_ref.extractall('/tmp/process')
-        for n in zip_ref.namelist():
-            if n == '__main__.py':
-                continue
-            exec(zip_ref.read(n), context)
+        zip_ref.extractall(tmp_path)
+        exec(zip_ref.read("main.py"), context)
+    sys.path.pop(0)
     return context
 
 
@@ -38,13 +66,15 @@ def load(m):
 
 def load_and_run(m, log, *args, **kwargs):
     if not os.path.exists(m):
+        orig_m = m
         m = os.path.join(os.path.dirname(__file__), m)
-        log.warn(f"module not found, using current dir for {m}")
+        log.warn(f"{orig_m} not found, using current dir for {m}")
         if not os.path.exists(m):
             log.error(f"module not found: {m}")
             raise RuntimeError(f"module not found: {m}")
     log.info(f"loading and running: {m}")
     context = load(m)
+    print(context['main'])
     # this will use the context provided in exec
     if 'main' not in context:
         log.error(f"missing main function in module: {m}")
