@@ -1,9 +1,9 @@
 from push.mgr.qm import QueueManager
 
-QueueManager.register('do_add')
-
 m = QueueManager(address=('', 50000), authkey=b'password')
 m.connect()
+
+QueueManager.register('do_add')
 
 da = m.do_add()
 
