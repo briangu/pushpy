@@ -3,6 +3,7 @@ import sys
 import uuid
 import zipfile
 from types import ModuleType
+import requests
 
 
 # python -m zipapp d -m 'lockd:main'
@@ -32,6 +33,32 @@ from types import ModuleType
 def ensure_path(p):
     import pathlib
     pathlib.Path(p).mkdir(parents=True, exist_ok=True)
+
+
+def compile_file_path(m):
+    with open(m, "r") as f:
+        x = f.read()
+    co = compile(x, str(uuid.uuid4()), "exec")
+    return co
+
+
+def compile_file_uri(m):
+    return compile_file_path(m[len("file://"):])
+
+
+def compile_uri(u):
+    f = requests.get(u)
+    x = f.text
+    co = compile(x, str(uuid.uuid4()), "exec")
+    return co
+
+
+def compile_source(t):
+    if t.startswith("file://"):
+        return compile_file_uri(t)
+    elif t.startswith("http"):
+        return compile_uri(t)
+    return compile(t, str(uuid.uuid4()), "exec")
 
 
 def load_dir(tmp_path, m):
