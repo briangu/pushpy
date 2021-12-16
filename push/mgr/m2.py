@@ -1,13 +1,10 @@
 import dill
+import time
 
 from push.mgr.qm import QueueManager
 
 m = QueueManager(address=('', 50000), authkey=b'password')
 m.connect()
-
-QueueManager.register('do_add')
-QueueManager.register('do_register')
-QueueManager.register('do_lambda')
 
 da = m.do_add()
 dr = m.do_register()
@@ -33,3 +30,11 @@ print("do_test result = " + str(dt.apply()))
 
 
 print(f"do_lambda result={str(dl.apply(src=x))}")
+
+
+print(list(QueueManager._registry.keys()))
+
+sync_lock = m.do_lock()
+sync_lock.tryAcquireLock("/dog")
+time.sleep(3)
+print(sync_lock.isOwned("/dog"))

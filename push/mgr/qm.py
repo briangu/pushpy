@@ -3,4 +3,8 @@ import dill
 
 
 class QueueManager(BaseManager):
-    pass
+    def connect(self) -> None:
+        super().connect()
+        self.register('do_registry')
+        for n in self.do_registry().apply():
+            self.register(n)

@@ -3,7 +3,7 @@ import threading
 
 import dill
 
-from push.loader import compile_source
+from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 
 # https://gist.github.com/spacecowboy/1203760
@@ -12,6 +12,9 @@ from push.mgr.qm import QueueManager
 Taken directly from the examples for multiprocessing. The only purpose for this
 file is to serve two queues for clients, of which there are two. 
 '''
+selfAddr = "localhost:10000"
+partners = []  # ["localhost:10001", "localhost:10002"]
+sync_lock = Lock(selfAddr, partners, 10.0)
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()
@@ -21,7 +24,7 @@ result_queue = Queue.Queue()
 class DoAdd:
     def apply(self, x, y):
         print(threading.current_thread().ident)
-        return x+y
+        return x + y
 
 
 da = DoAdd()
@@ -29,16 +32,8 @@ da = DoAdd()
 
 class DoRegister:
     def apply(self, name, src):
-        # print(name)
-        # print(name, src)
-        # print(type(src))
-        # src = src.decode('utf-8')
         src = dill.loads(src)
         q = src()
-        # print(q)
-        # exec(src)
-        # print(type(src))
-        # d = compile_source(src)
         QueueManager.register(name, callable=lambda: q)
 
 
@@ -54,12 +49,28 @@ class DoLambda:
 
 dl = DoLambda()
 
+
+class DoRegistry:
+    def apply(self):
+        return list(QueueManager._registry.keys())
+
+
+dreg = DoRegistry()
+
+# class DoLock:
+#     def apply(self):
+#         return list(QueueManager._registry.keys())
+
+# dreg = DoRegistry()
+
+
 QueueManager.register('get_job_queue', callable=lambda: job_queue)
 QueueManager.register('get_result_queue', callable=lambda: result_queue)
 QueueManager.register('do_add', callable=lambda: da)
 QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('do_lambda', callable=lambda: dl)
-
+QueueManager.register('do_registry', callable=lambda: dreg)
+QueueManager.register('do_lock', callable=lambda: sync_lock)
 
 # Start up
 m = QueueManager(address=('', 50000), authkey=b'password')
