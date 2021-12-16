@@ -78,6 +78,7 @@ QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('sync_lock', callable=lambda: sync_lock)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
+
 # Start up
 m = QueueManager(address=('', 50000), authkey=b'password')
 s = m.get_server()
