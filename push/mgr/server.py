@@ -7,7 +7,7 @@ import dill
 from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 import psutil
-
+import sys
 
 # from tensorflow.python.client import device_lib
 
@@ -29,8 +29,9 @@ def get_available_gpus():
 Taken directly from the examples for multiprocessing. The only purpose for this
 file is to serve two queues for clients, of which there are two. 
 '''
-selfAddr = "localhost:10000"
-partners = []  # ["localhost:10001", "localhost:10002"]
+
+selfAddr = sys.argv[1] #"localhost:10000"
+partners = sys.argv[2:] # ["localhost:10001", "localhost:10002"]
 sync_lock = Lock(selfAddr, partners, 10.0)
 
 
@@ -104,7 +105,9 @@ QueueManager.register('sync_lock', callable=lambda: sync_lock)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up
-m = QueueManager(address=('', 50000), authkey=b'password')
+mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
+print(mgr_port)
+m = QueueManager(address=('', mgr_port), authkey=b'password')
 s = m.get_server()
 # TODO: i think this code can be rewritten to use asyncio / twisted
 s.serve_forever()
