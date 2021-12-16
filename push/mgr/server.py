@@ -1,3 +1,4 @@
+import multiprocessing
 import queue as Queue
 import threading
 
@@ -57,20 +58,25 @@ class DoRegistry:
 
 dreg = DoRegistry()
 
-# class DoLock:
-#     def apply(self):
-#         return list(QueueManager._registry.keys())
 
-# dreg = DoRegistry()
+class DoLocaleCapabilities:
+    def apply(self):
+        stats = {}
+        stats['cpu_count'] = multiprocessing.cpu_count()
+        stats['has_GPU'] = False
+        return stats
+
+dlc = DoLocaleCapabilities()
 
 
 QueueManager.register('get_job_queue', callable=lambda: job_queue)
 QueueManager.register('get_result_queue', callable=lambda: result_queue)
 QueueManager.register('do_add', callable=lambda: da)
 QueueManager.register('do_register', callable=lambda: dr)
-QueueManager.register('do_lambda', callable=lambda: dl)
-QueueManager.register('do_registry', callable=lambda: dreg)
-QueueManager.register('do_lock', callable=lambda: sync_lock)
+QueueManager.register('apply_lambda', callable=lambda: dl)
+QueueManager.register('get_registry', callable=lambda: dreg)
+QueueManager.register('sync_lock', callable=lambda: sync_lock)
+QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up
 m = QueueManager(address=('', 50000), authkey=b'password')

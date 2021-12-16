@@ -8,7 +8,7 @@ m.connect()
 
 da = m.do_add()
 dr = m.do_register()
-dl = m.do_lambda()
+dl = m.apply_lambda()
 
 print("do_add result = " + str(da.apply(1, 2)))
 
@@ -34,7 +34,10 @@ print(f"do_lambda result={str(dl.apply(src=x))}")
 
 print(list(QueueManager._registry.keys()))
 
-sync_lock = m.do_lock()
+sync_lock = m.sync_lock()
 sync_lock.tryAcquireLock("/dog")
-time.sleep(3)
+time.sleep(0.1)
+print(sync_lock.isOwned("/dog"))
+print(sync_lock.release("/dog"))
+time.sleep(0.1)
 print(sync_lock.isOwned("/dog"))
