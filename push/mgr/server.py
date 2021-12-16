@@ -8,6 +8,14 @@ from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 import psutil
 
+from tensorflow.python.client import device_lib
+
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']
+
+
 # https://gist.github.com/spacecowboy/1203760
 
 '''
@@ -65,7 +73,7 @@ class DoLocaleCapabilities:
         stats = {}
         stats['cpu_count'] = multiprocessing.cpu_count()
         stats['virtual_memory'] = psutil.virtual_memory()
-        stats['has_GPU'] = False
+        stats['GPUs'] = get_available_gpus()
         return stats
 
 
