@@ -6,6 +6,8 @@ from push.mgr.qm import QueueManager
 m = QueueManager(address=('', 50000), authkey=b'password')
 m.connect()
 
+print(f"locale capabilities: {m.locale_capabilities().apply()}")
+
 da = m.do_add()
 dr = m.do_register()
 dl = m.apply_lambda()

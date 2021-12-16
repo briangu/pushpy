@@ -14,3 +14,5 @@ push~=0.3.10
 tornado~=6.1
 pysyncobj~=0.3.10
 lock~=2018.3.25.2110
+
+psutil~=5.8.0

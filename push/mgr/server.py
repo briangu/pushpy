@@ -6,6 +6,7 @@ import dill
 
 from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
+import psutil
 
 # https://gist.github.com/spacecowboy/1203760
 
@@ -63,8 +64,10 @@ class DoLocaleCapabilities:
     def apply(self):
         stats = {}
         stats['cpu_count'] = multiprocessing.cpu_count()
+        stats['virtual_memory'] = psutil.virtual_memory()
         stats['has_GPU'] = False
         return stats
+
 
 dlc = DoLocaleCapabilities()
 
