@@ -1,6 +1,11 @@
+import multiprocessing
+
 from push.mgr.qm import QueueManager
 import asyncio
 import tornado.web
+import tornado.ioloop
+import tornado.httpserver
+import tornado.gen
 
 m = QueueManager(address=('', 50000), authkey=b'password')
 m.connect()
@@ -9,8 +14,11 @@ sync_lock = m.sync_lock()
 
 
 class MainHandler(tornado.web.RequestHandler):
+
+    @tornado.gen.coroutine
     def get(self):
-        self.write("Hello, world")
+        self.write('OK')
+        self.finish()
 
 
 class StatusHandler(tornado.web.RequestHandler):
@@ -39,18 +47,27 @@ class ToggleHandler(tornado.web.RequestHandler):
 
 def make_app(sync_lock):
     return tornado.web.Application([
-        (r"/", MainHandler),
-        (r"/status", StatusHandler, {'sync_lock': sync_lock}),
-        (r"/toggle", ToggleHandler, {'sync_lock': sync_lock}),
+        ("/", MainHandler),
+        ("/status", StatusHandler, {'sync_lock': sync_lock}),
+        ("/toggle", ToggleHandler, {'sync_lock': sync_lock}),
     ])
 
-app = make_app(sync_lock)
-app.listen(11000)
+# app = make_app(sync_lock)
+# app.listen(11000)
+#
 
-loop = asyncio.get_event_loop()
-try:
-    # loop.run_until_complete(main())
-    loop.run_forever()
-finally:
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.close()
+if __name__=='__main__':
+    app = make_app(sync_lock)
+
+    server = tornado.httpserver.HTTPServer(app)
+    server.bind(11000)
+
+    server.start(int(multiprocessing.cpu_count() * 0.80))
+
+    # tornado.ioloop.IOLoop.current().start()
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_forever()
+    finally:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()

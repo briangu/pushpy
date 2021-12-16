@@ -8,12 +8,18 @@ from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 import psutil
 
-from tensorflow.python.client import device_lib
+# from tensorflow.python.client import device_lib
 
 
+# TODO: GPU enabled systems can have a GPU client attach and listen to a queue to do work
+#       we can report if there's a client registered or not
+#       Question: how do we register lambdas w/ the GPU client?  send serialized?
+#                 how do we sync the answer with the request? request id?
+#       if we host the GPU processing in this server, then we may need a lock to guard the GPU
 def get_available_gpus():
-    local_device_protos = device_lib.list_local_devices()
-    return [x.name for x in local_device_protos if x.device_type == 'GPU']
+    return []
+    # local_device_protos = device_lib.list_local_devices()
+    # return [x.name for x in local_device_protos if x.device_type == 'GPU']
 
 
 # https://gist.github.com/spacecowboy/1203760
@@ -83,6 +89,7 @@ dlc = DoLocaleCapabilities()
 QueueManager.register('get_job_queue', callable=lambda: job_queue)
 QueueManager.register('get_result_queue', callable=lambda: result_queue)
 QueueManager.register('do_add', callable=lambda: da)
+
 QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
@@ -93,4 +100,5 @@ QueueManager.register('locale_capabilities', callable=lambda: dlc)
 # Start up
 m = QueueManager(address=('', 50000), authkey=b'password')
 s = m.get_server()
+# TODO: i think this code can be rewritten to use asyncio / twisted
 s.serve_forever()
