@@ -21,12 +21,31 @@ class MainHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class CounterHandler(tornado.web.RequestHandler):
+
+    def initialize(self, sync_lock):
+        self.sync_lock = sync_lock
+
+    @tornado.gen.coroutine
+    def get(self):
+        self.write(str(self.sync_lock.getCounter()))
+
+    # ab -k -c 10 -n 100000 -u foo -T 'application/x-www-form-urlencoded'  http://localhost:11000/counter
+    @tornado.gen.coroutine
+    def put(self):
+        self.write(str(self.sync_lock.incCounter()))
+
+    @tornado.gen.coroutine
+    def post(self):
+        self.write(str(self.sync_lock.resetCounter()))
+
 class StatusHandler(tornado.web.RequestHandler):
     sync_lock = None
 
     def initialize(self, sync_lock):
         self.sync_lock = sync_lock
 
+    @tornado.gen.coroutine
     def get(self):
         self.write(str(self.sync_lock.getStatus()))
 
@@ -37,6 +56,7 @@ class ToggleHandler(tornado.web.RequestHandler):
     def initialize(self, sync_lock):
         self.sync_lock = sync_lock
 
+    @tornado.gen.coroutine
     def get(self):
         if self.sync_lock.isOwned("/dog"):
             self.sync_lock.release("/dog")
@@ -48,6 +68,7 @@ class ToggleHandler(tornado.web.RequestHandler):
 def make_app(sync_lock):
     return tornado.web.Application([
         ("/", MainHandler),
+        ("/counter", CounterHandler, {'sync_lock': sync_lock}),
         ("/status", StatusHandler, {'sync_lock': sync_lock}),
         ("/toggle", ToggleHandler, {'sync_lock': sync_lock}),
     ])

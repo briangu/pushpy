@@ -8,6 +8,7 @@ from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 import psutil
 
+
 # from tensorflow.python.client import device_lib
 
 
@@ -31,6 +32,13 @@ file is to serve two queues for clients, of which there are two.
 selfAddr = "localhost:10000"
 partners = []  # ["localhost:10001", "localhost:10002"]
 sync_lock = Lock(selfAddr, partners, 10.0)
+
+
+def on_acquire(path, clientId, t):
+    print(path, clientId, t)
+
+
+sync_lock.subscribe(on_acquire)
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()
@@ -85,7 +93,6 @@ class DoLocaleCapabilities:
 
 dlc = DoLocaleCapabilities()
 
-
 QueueManager.register('get_job_queue', callable=lambda: job_queue)
 QueueManager.register('get_result_queue', callable=lambda: result_queue)
 QueueManager.register('do_add', callable=lambda: da)
@@ -95,7 +102,6 @@ QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('sync_lock', callable=lambda: sync_lock)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
-
 
 # Start up
 m = QueueManager(address=('', 50000), authkey=b'password')

@@ -14,11 +14,32 @@ class LockImpl(SyncObj):
         self.__locks = {}
         self.__autoUnlockTime = autoUnlockTime
         self.__verbose = True
+        self.__counter = 0
+        self.__subscriptions = set()
+
+    @replicated
+    def incCounter(self):
+        self.__counter += 1
+        return self.__counter
+
+    def getCounter(self):
+        return self.__counter
+
+    @replicated
+    def resetCounter(self):
+        self.__counter = 0
+        return self.__counter
+
+    def subscribe(self, fn):
+        self.__subscriptions.add(fn)
+
 
     @replicated
     def acquire(self, lockPath, clientID, currentTime):
         if self.__verbose:
             print(f"{threading.get_ident()} acquire: {lockPath}, {clientID}, {currentTime}")
+        for fn in self.__subscriptions:
+            fn(lockPath, clientID, currentTime)
         existingLock = self.__locks.get(lockPath, None)
         # Auto-unlock old lock
         if existingLock is not None:
@@ -103,6 +124,9 @@ class Lock(object):
         except ReferenceError:
             pass
 
+    def subscribe(self, fn):
+        self.__lockImpl.subscribe(fn)
+
     def tryAcquireLock(self, path):
         self.__lockImpl.acquire(path, self.__selfID, time.time())
 
@@ -124,3 +148,11 @@ class Lock(object):
     def onTick(self):
         self.__lockImpl._onTick(timeToWait=0)
 
+    def getCounter(self):
+        return self.__lockImpl.getCounter()
+
+    def incCounter(self):
+        return self.__lockImpl.incCounter()
+
+    def resetCounter(self):
+        return self.__lockImpl.resetCounter()
