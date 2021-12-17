@@ -39,7 +39,7 @@ class LockImpl(SyncObj):
         if self.__verbose:
             print(f"{threading.get_ident()} acquire: {lockPath}, {clientID}, {currentTime}")
         for fn in self.__subscriptions:
-            fn(lockPath, clientID, currentTime)
+            fn("acquire", lockPath, clientID, currentTime)
         existingLock = self.__locks.get(lockPath, None)
         # Auto-unlock old lock
         if existingLock is not None:

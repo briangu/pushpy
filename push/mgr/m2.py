@@ -49,9 +49,11 @@ drc = m.do_register_callback()
 
 class DoOnAcquire:
     def apply(self, p, c, t):
+        import traceback
+        traceback.print_stack()
         print(f"DoOnAcquire: {p}, {c}, {t}")
 
-drc.apply("on_acquire", dill.dumps(DoOnAcquire))
+drc.apply("acquire", dill.dumps(DoOnAcquire))
 sync_lock.tryAcquireLock("/dog")
 time.sleep(0.1)
 print(sync_lock.isOwned("/dog"))

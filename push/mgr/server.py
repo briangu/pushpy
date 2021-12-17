@@ -46,13 +46,13 @@ QueueManager.register("on_acquire", callable=lambda: dacq)
 
 handle_map = dict()
 
-def on_acquire(path, clientId, t):
+def on_sync(method, path, clientId, t):
     global handle_map
-    if 'on_acquire' in handle_map:
-        handle_map['on_acquire'](path, clientId, t)
+    if method in handle_map:
+        handle_map[method](path, clientId, t)
 
 
-sync_lock.subscribe(on_acquire)
+sync_lock.subscribe(on_sync)
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()
