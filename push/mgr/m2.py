@@ -37,13 +37,13 @@ print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: '
 
 print(list(QueueManager._registry.keys()))
 
-sync_lock = m.sync_lock()
-sync_lock.tryAcquireLock("/dog")
+sync_obj = m.sync_obj()
+sync_obj.tryAcquireLock("/dog")
 time.sleep(0.1)
-print(sync_lock.isOwned("/dog"))
-print(sync_lock.release("/dog"))
+print(sync_obj.isOwned("/dog"))
+print(sync_obj.release("/dog"))
 time.sleep(0.1)
-print(sync_lock.isOwned("/dog"))
+print(sync_obj.isOwned("/dog"))
 
 drc = m.do_register_callback()
 
@@ -55,12 +55,12 @@ class DoOnAcquire:
         print(f"DoOnAcquire: {args} {kwargs}")
 
 drc.apply("acquire", dill.dumps(DoOnAcquire))
-sync_lock.tryAcquireLock("/dog")
+sync_obj.tryAcquireLock("/dog")
 time.sleep(0.1)
-print(sync_lock.release("/dog"))
+print(sync_obj.release("/dog"))
 
 drc.apply("acquire", dill.dumps(lambda *args, **kwargs: print(f"acquire lambda: {args} {kwargs}")))
 drc.apply("release", dill.dumps(lambda *args, **kwargs: print(f"release lambda: {args} {kwargs}")))
-sync_lock.tryAcquireLock("/dog")
+sync_obj.tryAcquireLock("/dog")
 time.sleep(0.1)
-print(sync_lock.release("/dog"))
+print(sync_obj.release("/dog"))

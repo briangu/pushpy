@@ -33,10 +33,10 @@ file is to serve two queues for clients, of which there are two.
 
 handle_map = dict()
 
-def on_replicate(sync_lock, method, *args, **kwargs):
+def on_replicate(sync_obj, method, *args, **kwargs):
     global handle_map
     if method in handle_map:
-        handle_map[method](sync_lock, *args, **kwargs)
+        handle_map[method](*args, **kwargs)
 
 
 selfAddr = sys.argv[1]  # "localhost:10000"
@@ -119,7 +119,7 @@ QueueManager.register('do_add', callable=lambda: da)
 QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
-QueueManager.register('sync_lock', callable=lambda: sync_lock)
+QueueManager.register('sync_obj', callable=lambda: sync_lock)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up
