@@ -84,8 +84,11 @@ QueueManager.register("do_register_callback", callable=lambda: drc)
 class DoLambda:
     def apply(self, src, *args, **kwargs):
         src = dill.loads(src)
-        q = src()
-        return q.apply(*args, **kwargs)
+        if isinstance(src, type):
+            q = src()
+            return q.apply(*args, **kwargs)
+        else:
+            return src(*args, **kwargs)
 
 
 dl = DoLambda()

@@ -32,6 +32,7 @@ print("do_test result = " + str(dt.apply()))
 
 
 print(f"do_lambda result={str(dl.apply(src=x))}")
+print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: print('lambda woot!'))))}")
 
 
 print(list(QueueManager._registry.keys()))
