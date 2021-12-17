@@ -31,19 +31,6 @@ Taken directly from the examples for multiprocessing. The only purpose for this
 file is to serve two queues for clients, of which there are two. 
 '''
 
-selfAddr = sys.argv[1]  # "localhost:10000"
-partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = Lock(selfAddr, partners, 10.0)
-
-
-class DoOnAcquire:
-    def apply(selfself, p, c, t):
-        print(p, c, t)
-
-dacq = DoOnAcquire()
-
-QueueManager.register("on_acquire", callable=lambda: dacq)
-
 handle_map = dict()
 
 def on_sync(method, path, clientId, t):
@@ -52,7 +39,9 @@ def on_sync(method, path, clientId, t):
         handle_map[method](path, clientId, t)
 
 
-sync_lock.subscribe(on_sync)
+selfAddr = sys.argv[1]  # "localhost:10000"
+partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
+sync_lock = Lock(selfAddr, partners, 10.0, subscriptions=set([on_sync]))
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()

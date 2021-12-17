@@ -8,14 +8,14 @@ from pysyncobj import SyncObj, replicated
 
 
 class LockImpl(SyncObj):
-    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf):
+    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf, subscriptions):
         super(LockImpl, self).__init__(selfAddress, partnerAddrs, conf=conf)
         self.__selfClientID = selfAddress
         self.__locks = {}
         self.__autoUnlockTime = autoUnlockTime
         self.__verbose = True
         self.__counter = 0
-        self.__subscriptions = set()
+        self.__subscriptions = subscriptions or set()
 
     @replicated
     def incCounter(self):
@@ -100,8 +100,8 @@ class LockImpl(SyncObj):
 
 
 class Lock(object):
-    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf=None):
-        self.__lockImpl = LockImpl(selfAddress, partnerAddrs, autoUnlockTime, conf=conf)
+    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf=None, subscriptions=None):
+        self.__lockImpl = LockImpl(selfAddress, partnerAddrs, autoUnlockTime, conf=conf, subscriptions=subscriptions)
         self.__selfID = selfAddress
         self.__autoUnlockTime = autoUnlockTime
         self.__mainThread = threading.current_thread()
