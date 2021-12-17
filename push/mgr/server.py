@@ -9,6 +9,7 @@ from push.mgr.qm import QueueManager
 import psutil
 import sys
 
+
 # from tensorflow.python.client import device_lib
 
 
@@ -30,13 +31,25 @@ Taken directly from the examples for multiprocessing. The only purpose for this
 file is to serve two queues for clients, of which there are two. 
 '''
 
-selfAddr = sys.argv[1] #"localhost:10000"
-partners = sys.argv[2:] # ["localhost:10001", "localhost:10002"]
+selfAddr = sys.argv[1]  # "localhost:10000"
+partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
 sync_lock = Lock(selfAddr, partners, 10.0)
 
 
+class DoOnAcquire:
+    def apply(selfself, p, c, t):
+        print(p, c, t)
+
+dacq = DoOnAcquire()
+
+QueueManager.register("on_acquire", callable=lambda: dacq)
+
+handle_map = dict()
+
 def on_acquire(path, clientId, t):
-    print(path, clientId, t)
+    global handle_map
+    if 'on_acquire' in handle_map:
+        handle_map['on_acquire'](path, clientId, t)
 
 
 sync_lock.subscribe(on_acquire)
@@ -65,6 +78,17 @@ class DoRegister:
 dr = DoRegister()
 
 
+class DoRegisterCallback:
+    def apply(self, name, src):
+        global handle_map
+        src = dill.loads(src)
+        q = src()
+        handle_map[name] = q.apply
+
+drc = DoRegisterCallback()
+QueueManager.register("do_register_callback", callable=lambda: drc)
+
+
 class DoLambda:
     def apply(self, src, *args, **kwargs):
         src = dill.loads(src)
@@ -85,11 +109,11 @@ dreg = DoRegistry()
 
 class DoLocaleCapabilities:
     def apply(self):
-        stats = {}
-        stats['cpu_count'] = multiprocessing.cpu_count()
-        stats['virtual_memory'] = psutil.virtual_memory()
-        stats['GPUs'] = get_available_gpus()
-        return stats
+        return {
+            'cpu_count': multiprocessing.cpu_count(),
+            'virtual_memory': psutil.virtual_memory(),
+            'GPUs': get_available_gpus()
+        }
 
 
 dlc = DoLocaleCapabilities()

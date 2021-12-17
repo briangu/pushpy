@@ -43,3 +43,19 @@ print(sync_lock.isOwned("/dog"))
 print(sync_lock.release("/dog"))
 time.sleep(0.1)
 print(sync_lock.isOwned("/dog"))
+
+drc = m.do_register_callback()
+
+
+class DoOnAcquire:
+    def apply(self, p, c, t):
+        print(f"DoOnAcquire: {p}, {c}, {t}")
+
+drc.apply("on_acquire", dill.dumps(DoOnAcquire))
+sync_lock.tryAcquireLock("/dog")
+time.sleep(0.1)
+print(sync_lock.isOwned("/dog"))
+print(sync_lock.release("/dog"))
+time.sleep(0.1)
+print(sync_lock.isOwned("/dog"))
+
