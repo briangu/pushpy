@@ -48,17 +48,18 @@ drc = m.do_register_callback()
 
 
 class DoOnAcquire:
-    def apply(self, p, c, t):
+    def apply(self, *args, **kwargs):
         import traceback
         traceback.print_stack()
-        print(f"DoOnAcquire: {p}, {c}, {t}")
+        print(f"DoOnAcquire: {args} {kwargs}")
 
 drc.apply("acquire", dill.dumps(DoOnAcquire))
 sync_lock.tryAcquireLock("/dog")
 time.sleep(0.1)
 print(sync_lock.release("/dog"))
 
-drc.apply("acquire", dill.dumps(lambda p,c,t: print(f"DoOnAcquire lambda: {p}, {c}, {t}")))
+drc.apply("acquire", dill.dumps(lambda *args, **kwargs: print(f"acquire lambda: {args} {kwargs}")))
+drc.apply("release", dill.dumps(lambda *args, **kwargs: print(f"release lambda: {args} {kwargs}")))
 sync_lock.tryAcquireLock("/dog")
 time.sleep(0.1)
 print(sync_lock.release("/dog"))

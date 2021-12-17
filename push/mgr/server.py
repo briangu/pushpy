@@ -33,15 +33,15 @@ file is to serve two queues for clients, of which there are two.
 
 handle_map = dict()
 
-def on_sync(method, path, clientId, t):
+def on_repicate(method, *args, **kwargs):
     global handle_map
     if method in handle_map:
-        handle_map[method](path, clientId, t)
+        handle_map[method](*args, **kwargs)
 
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = Lock(selfAddr, partners, 10.0, subscriptions=set([on_sync]))
+sync_lock = Lock(selfAddr, partners, 10.0, on_repicate=on_repicate)
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()
