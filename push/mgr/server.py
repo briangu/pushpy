@@ -33,10 +33,10 @@ file is to serve two queues for clients, of which there are two.
 
 handle_map = dict()
 
-def on_replicate(method, *args, **kwargs):
+def on_replicate(sync_lock, method, *args, **kwargs):
     global handle_map
     if method in handle_map:
-        handle_map[method](*args, **kwargs)
+        handle_map[method](sync_lock, *args, **kwargs)
 
 
 selfAddr = sys.argv[1]  # "localhost:10000"
