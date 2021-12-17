@@ -32,7 +32,7 @@ print("do_test result = " + str(dt.apply()))
 
 
 print(f"do_lambda result={str(dl.apply(src=x))}")
-print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: print('lambda woot!'))))}")
+print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: 'lambda woot!')))}")
 
 
 print(list(QueueManager._registry.keys()))
@@ -49,9 +49,9 @@ drc = m.do_register_callback()
 
 
 class DoOnAcquire:
-    def apply(self, *args, **kwargs):
-        import traceback
-        traceback.print_stack()
+    def __call__(self, *args, **kwargs):
+        # import traceback
+        # traceback.print_stack()
         print(f"DoOnAcquire: {args} {kwargs}")
 
 drc.apply("acquire", dill.dumps(DoOnAcquire))

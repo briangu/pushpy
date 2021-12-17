@@ -85,10 +85,9 @@ class DoLambda:
     def apply(self, src, *args, **kwargs):
         src = dill.loads(src)
         if isinstance(src, type):
-            q = src()
-            return q.apply(*args, **kwargs)
-        else:
-            return src(*args, **kwargs)
+            src = src()
+            src = src.apply if hasattr(src, 'apply') else src
+        return src(*args, **kwargs)
 
 
 dl = DoLambda()
