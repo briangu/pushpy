@@ -82,8 +82,11 @@ class DoRegisterCallback:
     def apply(self, name, src):
         global handle_map
         src = dill.loads(src)
-        q = src()
-        handle_map[name] = q.apply
+        if isinstance(src, type):
+            q = src()
+            handle_map[name] = q.apply if hasattr(q, 'apply') else q
+        else:
+            handle_map[name] = src
 
 drc = DoRegisterCallback()
 QueueManager.register("do_register_callback", callable=lambda: drc)

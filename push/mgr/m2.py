@@ -56,8 +56,9 @@ class DoOnAcquire:
 drc.apply("acquire", dill.dumps(DoOnAcquire))
 sync_lock.tryAcquireLock("/dog")
 time.sleep(0.1)
-print(sync_lock.isOwned("/dog"))
 print(sync_lock.release("/dog"))
-time.sleep(0.1)
-print(sync_lock.isOwned("/dog"))
 
+drc.apply("acquire", dill.dumps(lambda p,c,t: print(f"DoOnAcquire lambda: {p}, {c}, {t}")))
+sync_lock.tryAcquireLock("/dog")
+time.sleep(0.1)
+print(sync_lock.release("/dog"))
