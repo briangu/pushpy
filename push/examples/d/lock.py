@@ -8,14 +8,14 @@ from pysyncobj import SyncObj, replicated
 
 
 class LockImpl(SyncObj):
-    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf, on_repicate):
+    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf, on_replicate):
         super(LockImpl, self).__init__(selfAddress, partnerAddrs, conf=conf)
         self.__selfClientID = selfAddress
         self.__locks = {}
         self.__autoUnlockTime = autoUnlockTime
         self.__verbose = True
         self.__counter = 0
-        self.__subscriptions = on_repicate or None
+        self.on_replicate = on_replicate or None
 
     @replicated
     def incCounter(self):
@@ -35,8 +35,8 @@ class LockImpl(SyncObj):
     def acquire(self, lockPath, clientID, currentTime):
         if self.__verbose:
             print(f"{threading.get_ident()} acquire: {lockPath}, {clientID}, {currentTime}")
-        if self.__subscriptions is not None:
-            self.__subscriptions("acquire", lockPath, clientID, currentTime)
+        if self.on_replicate is not None:
+            self.on_replicate("acquire", lockPath, clientID, currentTime)
         existingLock = self.__locks.get(lockPath, None)
         # Auto-unlock old lock
         if existingLock is not None:
@@ -65,7 +65,7 @@ class LockImpl(SyncObj):
 
     @replicated
     def release(self, lockPath, clientID):
-        self.__subscriptions("release", lockPath, clientID)
+        self.on_replicate("release", lockPath, clientID)
         if self.__verbose:
             print(f"{threading.get_ident()} release: {lockPath} {clientID}")
         existingLock = self.__locks.get(lockPath, None)
@@ -98,16 +98,22 @@ class LockImpl(SyncObj):
 
 
 class Lock(object):
-    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf=None, on_repicate=None):
-        self.__lockImpl = LockImpl(selfAddress, partnerAddrs, autoUnlockTime, conf=conf, on_repicate=on_repicate)
+    def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf=None, on_replicate=None):
+        self.__lockImpl = LockImpl(selfAddress, partnerAddrs, autoUnlockTime, conf=conf, on_replicate=self.on_replicate if on_replicate is not None else None)
         self.__selfID = selfAddress
         self.__autoUnlockTime = autoUnlockTime
         self.__mainThread = threading.current_thread()
         self.__initialised = threading.Event()
         self.__thread = threading.Thread(target=Lock._autoAcquireThread, args=(weakref.proxy(self),))
         self.__thread.start()
+        self.on_replicate_fn = on_replicate
         while not self.__initialised.is_set():
             pass
+
+
+    def on_replicate(self, *args, **kwargs):
+        if self.on_replicate_fn is not None:
+            self.on_replicate_fn(self, *args, **kwargs)
 
     def _autoAcquireThread(self):
         print(f"{threading.get_ident()} _autoAcquireThread")
