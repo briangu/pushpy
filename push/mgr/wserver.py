@@ -10,7 +10,7 @@ import tornado.gen
 m = QueueManager(address=('', 50000), authkey=b'password')
 m.connect()
 
-sync_lock = m.sync_lock()
+sync_lock = m.sync_obj()
 
 
 class MainHandler(tornado.web.RequestHandler):
