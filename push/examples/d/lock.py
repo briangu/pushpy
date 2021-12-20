@@ -6,6 +6,8 @@ import weakref
 
 from pysyncobj import SyncObj, replicated
 
+# on change issue
+# https://github.com/bakwc/PySyncObj/issues/70
 
 class LockImpl(SyncObj):
     def __init__(self, selfAddress, partnerAddrs, autoUnlockTime, conf, on_replicate):
