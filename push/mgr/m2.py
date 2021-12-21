@@ -155,10 +155,8 @@ class DoDaemonTask:
 
         while control.running:
             self.jq.on_put.wait(1)
-            # TODO: use on replication event
             job = self.jq.get_sync()
             if job is None:
-                time.sleep(0.1)
                 continue
             print(f"daemon queue size: {self.jq.qsize()}")
 
