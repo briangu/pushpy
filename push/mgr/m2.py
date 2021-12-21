@@ -88,6 +88,7 @@ print(dl.apply(src="kvstore:my_lambda"))
 #   daemon - start thread (or process?) and run task inside
 #    pmap - parallel map execution of lambdas across a set of locales
 #   broadcast / report (map reduce?)
+#   on_replicate - use URN to reference kvstore
 #
 #   how do we collect the stdio from the tasks?
 #
