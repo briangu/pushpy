@@ -203,6 +203,14 @@ class MyReplDict(ReplDict):
 
 class MyReplQueue(ReplQueue):
 
+    on_put = threading.Event()
+
+    @replicated
+    def put(self, item):
+        super().put(item, _doApply=True)
+        print(f"queue: put {item}")
+        self.on_put.set()
+
     @replicated_sync
     def put_sync(self, item):
         self.put(item, _doApply=True)

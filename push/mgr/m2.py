@@ -93,7 +93,14 @@ print(dl.apply(src="kvstore:my_lambda"))
 #   on_replicate - use URN to reference kvstore
 #
 #   how do we collect the stdio from the tasks?
-#
+
+jq = m.get_job_queue()
+rq = m.get_result_queue()
+
+while rq.qsize() > 0:
+    rq.get_sync()
+
+
 class DoLambdaQueueTask:
 
     def __init__(self, _jq=None, _rq=None):
@@ -106,6 +113,7 @@ class DoLambdaQueueTask:
         print("lambda here! 1")
 
         self.jq.put_sync(('add', 2, 3))
+        assert self.jq.qsize() > 0
         print(f"lambda queue size: {self.jq.qsize()}")
         job = self.jq.get_sync()
 
@@ -122,8 +130,7 @@ class DoLambdaQueueTask:
             print("lambda here! type")
             res = op(job[1], job[2])
 
-        print(f"lambda here! res = {res}")
-        # print("Sending result: " + str(res))
+        print("lambda Sending result: " + str(res))
         self.rq.put_sync(res)
         rv = self.rq.get_sync()
         print(f"lambda result queue: {rv}")
@@ -132,13 +139,6 @@ class DoLambdaQueueTask:
 kvstore.set_sync("my_task", dill.dumps(DoLambdaQueueTask))
 
 dl.apply(src="kvstore:my_task")
-print()
-
-jq = m.get_job_queue()
-rq = m.get_result_queue()
-
-while rq.qsize() > 0:
-    rq.get_sync()
 
 # dqt = DoLambdaQueueTask(m.get_job_queue(), m.get_result_queue())
 # dqt.apply()
@@ -154,31 +154,29 @@ class DoDaemonTask:
         print("daemon here! 1")
 
         while control.running:
+            self.jq.on_put.wait(1)
+            # TODO: use on replication event
             job = self.jq.get_sync()
             if job is None:
                 time.sleep(0.1)
                 continue
-            print(f"queue size: {self.jq.qsize()}")
+            print(f"daemon queue size: {self.jq.qsize()}")
 
-            print(f"here! 2 job={job}")
+            print(f"daemon here! 2 job={job}")
             op = job[0]
 
             if op == 'add':
-                print("here! add")
+                print("daemon here! add")
                 res = job[1] + job[2]
             elif op == 'sub':
-                print("here! sub")
+                print("daemon here! sub")
                 res = job[1] - job[2]
             else:
-                print("here! type")
+                print("daemon here! type")
                 res = op(job[1], job[2])
 
-            print(f"here! res = {res}")
-            # print("Sending result: " + str(res))
-            self.rq.put_sync(res)
-            # rv = self.rq.get_sync()
-            # print(f"result queue: {rv}")
-            # return rv
+            print("daemon Sending result: " + str(res))
+            self.rq.put(res)
 
         print("exiting")
 
@@ -193,6 +191,5 @@ while rq.qsize() == 0:
     time.sleep(0.1)
 rv = rq.get_sync()
 print(f"result queue: {rv}")
-time.sleep(1)
 
 dt.stop("mdt")
