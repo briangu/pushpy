@@ -6,7 +6,7 @@ import weakref
 
 import dill
 from pysyncobj import SyncObj, replicated
-from pysyncobj.batteries import _ReplLockManagerImpl
+from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict
 
 from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
@@ -191,10 +191,11 @@ class MyReplLockManager:
 lock_mgr = MyReplLockManager(10, on_event=onrep.on_replicate)
 # lock_mgr = ReplLockManager(10)
 
+kvstore = ReplDict()
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = SyncObj(selfAddr, partners, consumers=[lock_mgr])
+sync_lock = SyncObj(selfAddr, partners, consumers=[lock_mgr, kvstore])
 
 # Define two queues, one for putting jobs on, one for putting results on.
 job_queue = Queue.Queue()
@@ -236,7 +237,17 @@ QueueManager.register("do_register_callback", callable=lambda: drc)
 
 class DoLambda:
     def apply(self, src, *args, **kwargs):
-        src = dill.loads(src)
+        if isinstance(src, str):
+            print(f"lambda: {src}")
+            p = src.split(":")
+            src = kvstore.get(p[1])
+            if src is None:
+                return None
+            src = dill.loads(src)
+        else:
+            print(f"lambda: code")
+            src = dill.loads(src)
+        print(f"lambda: {type(src)}")
         if isinstance(src, type):
             src = src()
             src = src.apply if hasattr(src, 'apply') else src
@@ -262,6 +273,18 @@ class DoLocaleCapabilities:
             'GPUs': get_available_gpus()
         }
 
+class DoKvStore():
+    def set(self, k, v):
+        global kvstore
+        # kvstore.set(k, v)
+        print(k,v)
+
+    def get(self, k):
+        global kvstore
+        # return kvstore.get(k)
+        print(k)
+
+dkvs = DoKvStore()
 
 dlc = DoLocaleCapabilities()
 
@@ -273,6 +296,7 @@ QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('sync_obj', callable=lambda: lock_mgr)
+QueueManager.register('kvstore', callable=lambda: kvstore)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up

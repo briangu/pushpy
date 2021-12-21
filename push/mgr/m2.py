@@ -70,3 +70,14 @@ drc.apply("release", dill.dumps(lambda *args, **kwargs: print(f"release lambda: 
 sync_obj.tryAcquire("/dog", sync=True)
 time.sleep(0.1)
 print(sync_obj.release("/dog"))
+
+kvstore = m.kvstore()
+print(kvstore)
+
+kvstore.set(key="my_lambda", value=dill.dumps(lambda *args, **kwargs: f"my lambda {args} {kwargs}"))
+while True:
+    if kvstore.get("my_lambda") is not None:
+        break
+# kvstore.set("my_lambda", "foo")
+
+print(dl.apply(src="kvstore:my_lambda"))
