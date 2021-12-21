@@ -74,10 +74,23 @@ print(sync_obj.release("/dog"))
 kvstore = m.kvstore()
 print(kvstore)
 
-kvstore.set(key="my_lambda", value=dill.dumps(lambda *args, **kwargs: f"my lambda {args} {kwargs}"))
-while True:
-    if kvstore.get("my_lambda") is not None:
-        break
+kvstore.set_sync(key="my_lambda", value=dill.dumps(lambda *args, **kwargs: f"my lambda {args} {kwargs}"))
+# while True:
+#     if kvstore.get("my_lambda") is not None:
+#         break
 # kvstore.set("my_lambda", "foo")
 
 print(dl.apply(src="kvstore:my_lambda"))
+
+# TODO: task management
+#   cron https://github.com/dbader/schedule
+#   lambda - see above
+#   daemon - start thread (or process?) and run task inside
+#    pmap - parallel map execution of lambdas across a set of locales
+#   broadcast / report (map reduce?)
+#
+#   how do we collect the stdio from the tasks?
+#
+
+
+

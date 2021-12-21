@@ -5,7 +5,7 @@ import time
 import weakref
 
 import dill
-from pysyncobj import SyncObj, replicated
+from pysyncobj import SyncObj, replicated, replicated_sync
 from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict
 
 from push.examples.d.lock import Lock
@@ -191,7 +191,13 @@ class MyReplLockManager:
 lock_mgr = MyReplLockManager(10, on_event=onrep.on_replicate)
 # lock_mgr = ReplLockManager(10)
 
-kvstore = ReplDict()
+class MyReplDict(ReplDict):
+
+    @replicated_sync
+    def set_sync(self, key, value):
+        self.set(key, value, _doApply=True)
+
+kvstore = MyReplDict()
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
