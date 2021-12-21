@@ -6,7 +6,7 @@ import weakref
 
 import dill
 from pysyncobj import SyncObj, replicated, replicated_sync
-from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict
+from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict, ReplQueue
 
 from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
@@ -197,15 +197,27 @@ class MyReplDict(ReplDict):
     def set_sync(self, key, value):
         self.set(key, value, _doApply=True)
 
+
+class MyReplQueue(ReplQueue):
+
+    @replicated_sync
+    def put_sync(self, item):
+        self.put(item, _doApply=True)
+
+    @replicated_sync
+    def get_sync(self, default=None):
+        return self.get(default=default, _doApply=True)
+
+
 kvstore = MyReplDict()
+
+# Define two queues, one for putting jobs on, one for putting results on.
+job_queue = MyReplQueue() #Queue.Queue()
+result_queue = MyReplQueue()
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = SyncObj(selfAddr, partners, consumers=[lock_mgr, kvstore])
-
-# Define two queues, one for putting jobs on, one for putting results on.
-job_queue = Queue.Queue()
-result_queue = Queue.Queue()
+sync_lock = SyncObj(selfAddr, partners, consumers=[lock_mgr, kvstore, job_queue, result_queue])
 
 
 class DoAdd:
