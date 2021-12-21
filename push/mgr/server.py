@@ -2,6 +2,7 @@ import multiprocessing
 import queue as Queue
 import threading
 import time
+import uuid
 import weakref
 
 import dill
@@ -42,8 +43,9 @@ class OnReplicate:
     handle_map = dict()
 
     def on_replicate(self, method, *args, **kwargs):
-       if method in self.handle_map:
-          self.handle_map[method](*args, **kwargs)
+        if method in self.handle_map:
+            self.handle_map[method](*args, **kwargs)
+
 
 onrep = OnReplicate()
 
@@ -65,7 +67,6 @@ class MyReplLockManagerImpl(_ReplLockManagerImpl):
         super().release(lockID, clientID, _doApply=True)
         if self.on_event is not None:
             self.on_event('release', lockID, clientID)
-
 
     # def isOwned(self, lockPath, clientID, currentTime):
     #     existingLock = self.__locks.get(lockPath, None)
@@ -189,6 +190,8 @@ class MyReplLockManager:
 
 
 lock_mgr = MyReplLockManager(10, on_event=onrep.on_replicate)
+
+
 # lock_mgr = ReplLockManager(10)
 
 class MyReplDict(ReplDict):
@@ -212,8 +215,10 @@ class MyReplQueue(ReplQueue):
 kvstore = MyReplDict()
 
 # Define two queues, one for putting jobs on, one for putting results on.
-job_queue = MyReplQueue() #Queue.Queue()
+job_queue = MyReplQueue()  # Queue.Queue()
 result_queue = MyReplQueue()
+print(job_queue)
+print(result_queue)
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
@@ -249,26 +254,32 @@ class DoRegisterCallback:
         else:
             onrep.handle_map[name] = src
 
+
 drc = DoRegisterCallback()
 QueueManager.register("do_register_callback", callable=lambda: drc)
 
 
+def load_src(src):
+    if isinstance(src, str):
+        print(f"lambda: {src}")
+        p = src.split(":")
+        src = kvstore.get(p[1])
+        if src is None:
+            return None
+        src = dill.loads(src)
+    else:
+        print(f"lambda: code")
+        src = dill.loads(src)
+    print(f"lambda: {type(src)}")
+    if isinstance(src, type):
+        src = src()
+        src = src.apply if hasattr(src, 'apply') else src
+    return src
+
+
 class DoLambda:
     def apply(self, src, *args, **kwargs):
-        if isinstance(src, str):
-            print(f"lambda: {src}")
-            p = src.split(":")
-            src = kvstore.get(p[1])
-            if src is None:
-                return None
-            src = dill.loads(src)
-        else:
-            print(f"lambda: code")
-            src = dill.loads(src)
-        print(f"lambda: {type(src)}")
-        if isinstance(src, type):
-            src = src()
-            src = src.apply if hasattr(src, 'apply') else src
+        src = load_src(src)
         return src(*args, **kwargs)
 
 
@@ -291,18 +302,54 @@ class DoLocaleCapabilities:
             'GPUs': get_available_gpus()
         }
 
+
 class DoKvStore():
     def set(self, k, v):
         global kvstore
         # kvstore.set(k, v)
-        print(k,v)
+        print(k, v)
 
     def get(self, k):
         global kvstore
         # return kvstore.get(k)
         print(k)
 
+
 dkvs = DoKvStore()
+
+
+class TaskControl:
+    running = True
+
+class TaskContext:
+    def __init__(self, control, thread):
+        self.control = control
+        self.thread = thread
+
+class DoTask:
+    task_threads = dict()
+
+    def run(self, task_type, src, name=None):
+        src = load_src(src)
+        name = name or str(uuid.uuid4())
+        if name in self.task_threads:
+            raise RuntimeError(f"task already running: {name}")
+        if task_type == "daemon":
+            task_control = TaskControl()
+            task_context = TaskContext(task_control,
+                                       threading.Thread(target=src, args=(task_control,)))
+            task_context.thread.start()
+            self.task_threads[name] = task_context
+            print(self.task_threads)
+
+    def stop(self, name):
+        if name not in self.task_threads:
+            return
+        self.task_threads[name].control.running = False
+        self.task_threads[name].thread.join(timeout=10)
+        del self.task_threads[name]
+
+dotask = DoTask()
 
 dlc = DoLocaleCapabilities()
 
@@ -315,6 +362,7 @@ QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('sync_obj', callable=lambda: lock_mgr)
 QueueManager.register('kvstore', callable=lambda: kvstore)
+QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up
