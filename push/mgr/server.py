@@ -261,16 +261,16 @@ QueueManager.register("do_register_callback", callable=lambda: drc)
 
 def load_src(src):
     if isinstance(src, str):
-        print(f"lambda: {src}")
+        print(f"load_src: {src}")
         p = src.split(":")
         src = kvstore.get(p[1])
         if src is None:
             return None
         src = dill.loads(src)
     else:
-        print(f"lambda: code")
+        print(f"load_src: code")
         src = dill.loads(src)
-    print(f"lambda: {type(src)}")
+    print(f"load_src: {type(src)}")
     if isinstance(src, type):
         src = src()
         src = src.apply if hasattr(src, 'apply') else src

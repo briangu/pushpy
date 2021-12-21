@@ -94,52 +94,51 @@ print(dl.apply(src="kvstore:my_lambda"))
 #
 #   how do we collect the stdio from the tasks?
 #
-# class DoLambdaQueueTask:
+class DoLambdaQueueTask:
+
+    def __init__(self, _jq=None, _rq=None):
+        global job_queue
+        global result_queue
+        self.jq = _jq or job_queue
+        self.rq = _rq or result_queue
+
+    def apply(self):
+        print("lambda here! 1")
+
+        self.jq.put_sync(('add', 2, 3))
+        print(f"lambda queue size: {self.jq.qsize()}")
+        job = self.jq.get_sync()
+
+        print(f"lambda here! 2 job={job}")
+        op = job[0]
+
+        if op == 'add':
+            print("lambda here! add")
+            res = job[1] + job[2]
+        elif op == 'sub':
+            print("lambda here! sub")
+            res = job[1] - job[2]
+        else:
+            print("lambda here! type")
+            res = op(job[1], job[2])
+
+        print(f"lambda here! res = {res}")
+        # print("Sending result: " + str(res))
+        self.rq.put_sync(res)
+        rv = self.rq.get_sync()
+        print(f"lambda result queue: {rv}")
+        return rv
 #
-#     def __init__(self, _jq=None, _rq=None):
-#         global job_queue
-#         global result_queue
-#         self.jq = _jq or job_queue
-#         self.rq = _rq or result_queue
-#
-#     def apply(self):
-#         print("here! 1")
-#
-#         self.jq.put_sync(('add', 2, 3))
-#         job = self.jq.get_sync()
-#         while job is None:
-#             time.sleep(0.1)
-#             job = self.jq.get_sync()
-#         if job is None:
-#             print(f"no job, returning")
-#             return
-#
-#         print(f"here! 2 job={job}")
-#         op = job[0]
-#
-#         if op == 'add':
-#             print("here! add")
-#             res = job[1] + job[2]
-#         elif op == 'sub':
-#             print("here! sub")
-#             res = job[1] - job[2]
-#         else:
-#             print("here! type")
-#             res = op(job[1], job[2])
-#
-#         print(f"here! res = {res}")
-#         # print("Sending result: " + str(res))
-#         self.rq.put_sync(res)
-#         rv = self.rq.get_sync()
-#         print(f"result queue: {rv}")
-#         return rv
-#
-# kvstore.set_sync("my_task", dill.dumps(DoLambdaQueueTask))
-#
-# dl.apply(src="kvstore:my_task")
+kvstore.set_sync("my_task", dill.dumps(DoLambdaQueueTask))
+
+dl.apply(src="kvstore:my_task")
+print()
 
 jq = m.get_job_queue()
 rq = m.get_result_queue()
+
+while rq.qsize() > 0:
+    rq.get_sync()
 
 # dqt = DoLambdaQueueTask(m.get_job_queue(), m.get_result_queue())
 # dqt.apply()
@@ -155,34 +154,9 @@ class DoDaemonTask:
         print("daemon here! 1")
 
         while control.running:
-            # job = self.jq.get_sync()
-            #
-            # print(f"daemon here! 2 job={job}")
-            # if job is None:
-            #     time.sleep(0.1)
-            #     continue
-            #
-            # op = job[0]
-            #
-            # if op == 'add':
-            #     print("daemon here! add")
-            #     res = job[1] + job[2]
-            # elif op == 'sub':
-            #     print("daemon here! sub")
-            #     res = job[1] - job[2]
-            # else:
-            #     print("daemon here! type")
-            #     res = op(job[1], job[2])
-            #
-            # print(f"daemon here! res = {res}")
-            # # print("Sending result: " + str(res))
-            # self.rq.put_sync(res)
-            # print("here! 1")
-            # if self.jq.qsize() == 0:
-            #     self.jq.put_sync(('add', 2, 3))
             job = self.jq.get_sync()
             if job is None:
-                # print(f"no job, returning")
+                time.sleep(0.1)
                 continue
             print(f"queue size: {self.jq.qsize()}")
 
@@ -215,9 +189,8 @@ dt.stop("mdt")
 dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
 
 jq.put_sync(('add', 5, 6))
-# while rq.qsize() == 0:
-#     time.sleep(0.1)
-time.sleep(1)
+while rq.qsize() == 0:
+    time.sleep(0.1)
 rv = rq.get_sync()
 print(f"result queue: {rv}")
 time.sleep(1)
