@@ -19,7 +19,6 @@ import os
 
 # from tensorflow.python.client import device_lib
 
-print(f"starting demo server")
 
 # TODO: GPU enabled systems can have a GPU client attach and listen to a queue to do work
 #       we can report if there's a client registered or not
