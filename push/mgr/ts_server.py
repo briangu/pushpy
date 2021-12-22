@@ -125,7 +125,7 @@ class DoKvStore():
 
 dkvs = DoKvStore()
 
-dotask = DoTask()
+dotask = DoTask(kvstore)
 
 dlc = DoLocaleCapabilities()
 

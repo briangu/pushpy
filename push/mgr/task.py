@@ -17,8 +17,11 @@ class TaskContext:
 class DoTask:
     task_threads = dict()
 
+    def __init__(self, kvstore):
+        self.kvstore = kvstore
+
     def run(self, task_type, src, name=None):
-        src = load_src(src)
+        src = load_src(self.kvstore, src)
         name = name or str(uuid.uuid4())
         if name in self.task_threads:
             raise RuntimeError(f"task already running: {name}")
