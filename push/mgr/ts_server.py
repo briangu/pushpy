@@ -13,6 +13,7 @@ from pysyncobj.batteries import ReplDict
 
 from push.mgr.code_util import load_src
 from push.mgr.qm import QueueManager
+from push.mgr.strategy import Strategy
 from push.mgr.task import DoTask
 
 import tornado.web
@@ -35,10 +36,11 @@ kvstore = MyReplDict()
 
 
 class ReplTimeseries(SyncObjConsumer):
-    def __init__(self):
+    def __init__(self, on_append = None):
         super(ReplTimeseries, self).__init__()
         self.__data = dict()
         self.__index_data = list()
+        self.__on_append = on_append
 
     @replicated
     def reset(self):
@@ -55,6 +57,8 @@ class ReplTimeseries(SyncObjConsumer):
                 self.__data[key] = col
             key_data = key_data if isinstance(key_data, list) else [key_data]
             col.append(key_data)
+        if self.__on_append is not None:
+            self.__on_append(idx_data, keys, data)
 
     def flatten(self, keys=None):
         keys = keys or list(self.__data.keys())
@@ -64,7 +68,11 @@ class ReplTimeseries(SyncObjConsumer):
         return df
 
 
-repl_ts = ReplTimeseries()
+def process_ts_updates(idx_data, keys, data):
+    print(f"post-processing: {idx_data} {keys}")
+
+
+repl_ts = ReplTimeseries(on_append=process_ts_updates)
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
@@ -150,7 +158,11 @@ QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
-strategies = list(range(1, 10))
+# TODO: one set of strategies and replicate it into a repllist
+symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']
+strategy_capabilities = [None, 'GPU']
+np.random.seed(0)
+strategies = [Strategy(id=str(i), name=f"s_{i}", symbols=np.random.choice(symbols, 2), capabilities=np.random.choice(strategy_capabilities)) for i in range(10)]
 
 print(f"booting: ")
 print(f"status: {sync_lock.getStatus()}")
@@ -188,17 +200,23 @@ def serve_forever(mgr_port, auth_key):
 class MainHandler(tornado.web.RequestHandler):
 
     def initialize(self, kvstore):
-        self.kvstore = kvstore
+        if kvstore is None:
+            m = QueueManager(address=('', 50000), authkey=b'password')
+            m.connect()
+            self.kvstore = m.kvstore()
+        else:
+            self.kvstore = kvstore
 
     @tornado.gen.coroutine
     def get(self):
-        self.write(f"keys: {kvstore.keys()}")
+        self.write(f"keys: {self.kvstore.keys()}")
         self.finish()
 
 
 def make_app(kvstore):
     return tornado.web.Application([
-        ("/", MainHandler, {'kvstore': kvstore})
+       ("/", MainHandler, {'kvstore': kvstore})
+        # ("/", MainHandler)
         # ("/counter", CounterHandler, {'sync_lock': sync_lock}),
         # ("/status", StatusHandler, {'sync_lock': sync_lock}),
         # ("/toggle", ToggleHandler, {'sync_lock': sync_lock}),
@@ -208,10 +226,11 @@ def make_app(kvstore):
 # TODO: i think this code can be rewritten to use asyncio / twisted
 m, mt = serve_forever(mgr_port, b'password')
 
-webserver = tornado.httpserver.HTTPServer(make_app(sync_lock))
+webserver = tornado.httpserver.HTTPServer(make_app(kvstore))
 port = 11000 + my_partition
 print(f"my port: {port}")
 webserver.listen(port)
+# webserver.start(2)
 
 print(f"starting webserver")
 # tornado.ioloop.IOLoop.current().start()

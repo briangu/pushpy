@@ -24,10 +24,10 @@ class DataGeneratorTask:
         import time
 
         while control.running:
-            stocks = ['MSFT', 'GOOG', 'WDAY']
+            symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']
             now = datetime.datetime.now(timezone.utc)
-            d = [random.uniform(10, 100) for _ in stocks]
-            self.ts.append(now, stocks, d)
+            d = [random.uniform(10, 100) for _ in symbols]
+            self.ts.append(now, symbols, d)
             time.sleep(1)
 
 
