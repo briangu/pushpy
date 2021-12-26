@@ -1,5 +1,8 @@
+import asyncio
 import multiprocessing
 import sys
+import threading
+from multiprocessing import process, util
 
 import dill
 import numpy as np
@@ -12,7 +15,14 @@ from push.mgr.code_util import load_src
 from push.mgr.qm import QueueManager
 from push.mgr.task import DoTask
 
+import tornado.web
+import tornado.ioloop
+import tornado.httpserver
+import tornado.gen
+
+
 print("starting")
+
 
 class MyReplDict(ReplDict):
 
@@ -59,6 +69,7 @@ repl_ts = ReplTimeseries()
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
 sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts])
+
 
 class DoRegister:
     def apply(self, name, src):
@@ -148,7 +159,7 @@ print(f"others: {sync_lock.otherNodes}")
 all = [sync_lock.selfNode, *sync_lock.otherNodes]
 all = sorted(all, key=lambda x: x.id)
 cluster_size = len(all)
-my_partition = all.index(sync_lock.selfNode) 
+my_partition = all.index(sync_lock.selfNode)
 print(my_partition)
 print([x for x in all])
 print(f"owned strategies: {[x for x in strategies if hash(x) % cluster_size == my_partition]}")
@@ -158,5 +169,68 @@ mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
 print(mgr_port)
 m = QueueManager(address=('', mgr_port), authkey=b'password')
 s = m.get_server()
+
+
+def serve_forever(mgmt_server):
+    mgmt_server.stop_event = threading.Event()
+    process.current_process()._manager_server = mgmt_server
+    try:
+        accepter = threading.Thread(target=mgmt_server.accepter)
+        accepter.daemon = True
+        accepter.start()
+        # try:
+        #     while not server.stop_event.is_set():
+        #         server.stop_event.wait(1)
+        # except (KeyboardInterrupt, SystemExit):
+        #     pass
+        return accepter
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(e)
+        # if sys.stdout != sys.__stdout__:  # what about stderr?
+        #     util.debug('resetting stdout, stderr')
+        #     sys.stdout = sys.__stdout__
+        #     sys.stderr = sys.__stderr__
+        # sys.exit(0)
+
+
+class MainHandler(tornado.web.RequestHandler):
+
+    def initialize(self, kvstore):
+        self.kvstore = kvstore
+
+    @tornado.gen.coroutine
+    def get(self):
+        self.write(f"keys: {kvstore.keys()}")
+        self.finish()
+
+
+def make_app(kvstore):
+    return tornado.web.Application([
+        ("/", MainHandler, {'kvstore': kvstore})
+        # ("/counter", CounterHandler, {'sync_lock': sync_lock}),
+        # ("/status", StatusHandler, {'sync_lock': sync_lock}),
+        # ("/toggle", ToggleHandler, {'sync_lock': sync_lock}),
+    ])
+
+
 # TODO: i think this code can be rewritten to use asyncio / twisted
-s.serve_forever()
+mt = serve_forever(s)
+
+webserver = tornado.httpserver.HTTPServer(make_app(sync_lock))
+port = 11000 + my_partition
+print(f"my port: {port}")
+webserver.listen(port)
+
+print(f"starting webserver")
+tornado.ioloop.IOLoop.current().start()
+# loop = asyncio.get_event_loop()
+# try:
+#     loop.run_forever()
+# finally:
+#     loop.run_until_complete(loop.shutdown_asyncgens())
+#     loop.close()
+print(f"stopping webserver")
+
+mt.join()
