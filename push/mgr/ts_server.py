@@ -139,7 +139,19 @@ QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
 
-print(f"booting")
+strategies = list(range(1, 10))
+
+print(f"booting: ")
+print(f"status: {sync_lock.getStatus()}")
+print(f"self: {sync_lock.selfNode}")
+print(f"others: {sync_lock.otherNodes}")
+all = [sync_lock.selfNode, *sync_lock.otherNodes]
+all = sorted(all, key=lambda x: x.id)
+cluster_size = len(all)
+my_partition = all.index(sync_lock.selfNode) 
+print(my_partition)
+print([x for x in all])
+print(f"owned strategies: {[x for x in strategies if hash(x) % cluster_size == my_partition]}")
 
 # Start up
 mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
