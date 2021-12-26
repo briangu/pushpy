@@ -166,33 +166,23 @@ print(f"owned strategies: {[x for x in strategies if hash(x) % cluster_size == m
 
 # Start up
 mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
-print(mgr_port)
-m = QueueManager(address=('', mgr_port), authkey=b'password')
-s = m.get_server()
+print(f"manager port: {mgr_port}")
 
 
-def serve_forever(mgmt_server):
+def serve_forever(mgr_port, auth_key):
+    m = QueueManager(address=('', mgr_port), authkey=auth_key)
+    mgmt_server = m.get_server()
     mgmt_server.stop_event = threading.Event()
     process.current_process()._manager_server = mgmt_server
     try:
         accepter = threading.Thread(target=mgmt_server.accepter)
         accepter.daemon = True
         accepter.start()
-        # try:
-        #     while not server.stop_event.is_set():
-        #         server.stop_event.wait(1)
-        # except (KeyboardInterrupt, SystemExit):
-        #     pass
-        return accepter
+        return m, accepter
     except Exception as e:
         import traceback
         traceback.print_exc()
         print(e)
-        # if sys.stdout != sys.__stdout__:  # what about stderr?
-        #     util.debug('resetting stdout, stderr')
-        #     sys.stdout = sys.__stdout__
-        #     sys.stderr = sys.__stderr__
-        # sys.exit(0)
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -216,7 +206,7 @@ def make_app(kvstore):
 
 
 # TODO: i think this code can be rewritten to use asyncio / twisted
-mt = serve_forever(s)
+m, mt = serve_forever(mgr_port, b'password')
 
 webserver = tornado.httpserver.HTTPServer(make_app(sync_lock))
 port = 11000 + my_partition
@@ -224,13 +214,13 @@ print(f"my port: {port}")
 webserver.listen(port)
 
 print(f"starting webserver")
-tornado.ioloop.IOLoop.current().start()
-# loop = asyncio.get_event_loop()
-# try:
-#     loop.run_forever()
-# finally:
-#     loop.run_until_complete(loop.shutdown_asyncgens())
-#     loop.close()
+# tornado.ioloop.IOLoop.current().start()
+loop = asyncio.get_event_loop()
+try:
+    loop.run_forever()
+finally:
+    loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.close()
 print(f"stopping webserver")
 
 mt.join()
