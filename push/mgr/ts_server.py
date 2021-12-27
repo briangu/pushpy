@@ -27,9 +27,19 @@ print("starting")
 
 class MyReplDict(ReplDict):
 
+    def __init__(self, on_set=None):
+        super(MyReplDict, self).__init__()
+        self.on_set = on_set
+
     @replicated_sync
     def set_sync(self, key, value):
         self.set(key, value, _doApply=True)
+
+    @replicated
+    def set(self, key, value):
+        super().set(key, value, _doApply=True)
+        if self.on_set is not None:
+            self.on_set(key, value)
 
 
 kvstore = MyReplDict()
@@ -197,6 +207,12 @@ def serve_forever(mgr_port, auth_key):
         print(e)
 
 
+def on_get(self):
+    self.write("hello")
+    self.write(f"keys: {self.kvstore.keys()}")
+    self.finish()
+
+
 class MainHandler(tornado.web.RequestHandler):
 
     def initialize(self, kvstore):
@@ -206,11 +222,18 @@ class MainHandler(tornado.web.RequestHandler):
             self.kvstore = m.kvstore()
         else:
             self.kvstore = kvstore
+        if "on_get_v" not in self.kvstore:
+            self.kvstore.set("on_get_v", 1)
+            self.kvstore.set("on_get_c", dill.dumps(on_get))
 
     @tornado.gen.coroutine
     def get(self):
-        self.write(f"keys: {self.kvstore.keys()}")
-        self.finish()
+        on_get_v = self.kvstore.get("on_get_v")
+        if on_get_v is not None:
+            kv_on_get = self.kvstore.get(f"on_get_v{on_get_v}")
+            if kv_on_get is not None:
+                kv_on_get = load_src(self.kvstore, kv_on_get)
+                kv_on_get(self)
 
 
 def make_app(kvstore):
