@@ -9,9 +9,9 @@ import os
 from pysyncobj import replicated, SyncObjConsumer, SyncObj
 
 
-class _ReplResourceManagerImpl(SyncObjConsumer):
+class _ReplHostManagerImpl(SyncObjConsumer):
     def __init__(self, autoUnlockTime):
-        super(_ReplResourceManagerImpl, self).__init__()
+        super(_ReplHostManagerImpl, self).__init__()
         self.__locks = {}
         self.__autoUnlockTime = autoUnlockTime
 
@@ -55,8 +55,18 @@ class _ReplResourceManagerImpl(SyncObjConsumer):
                     return True
         return False
 
+    def isOwned(self, lockID, clientID, currentTime):
+        existingLock = self.__locks.get(lockID, None)
+        if existingLock is not None:
+            if currentTime - existingLock[1] < self.__autoUnlockTime:
+                return True
+        return False
 
-class ReplResourceManager(object):
+    def rawData(self):
+        return self.__locks.copy()
+
+
+class ReplHostManager(object):
 
     def __init__(self, autoUnlockTime, selfID = None):
         """Replicated Lock Manager. Allow to acquire / release distributed locks.
@@ -67,7 +77,7 @@ class ReplResourceManager(object):
         :param selfID: (optional) - unique id of current lock holder.
         :type selfID: str
         """
-        self.__lockImpl = _ReplResourceManagerImpl(autoUnlockTime)
+        self.__lockImpl = _ReplHostManagerImpl(autoUnlockTime)
         if selfID is None:
             selfID = '%s:%d:%d' % (socket.gethostname(), os.getpid(), id(self))
         self.__selfID = selfID
@@ -76,10 +86,10 @@ class ReplResourceManager(object):
         self.__initialised = threading.Event()
         self.__destroying = False
         self.__lastProlongateTime = 0
-        self.__thread = threading.Thread(target=ReplResourceManager._autoAcquireThread, args=(weakref.proxy(self),))
+        self.__thread = threading.Thread(target=ReplHostManager._autoAcquireThread, args=(weakref.proxy(self),))
         self.__thread.start()
         while not self.__initialised.is_set():
-            time.sleep(0.1)
+            pass
 
     def _consumer(self):
         return self.__lockImpl
@@ -87,15 +97,6 @@ class ReplResourceManager(object):
     def destroy(self):
         """Destroy should be called before destroying ReplLockManager"""
         self.__destroying = True
-
-    def partition_size(self):
-        syncObj: SyncObj = self.__lockImpl._syncObj
-        if syncObj is None:
-            return 0
-        all = [syncObj.selfNode, *syncObj.otherNodes]
-        all = sorted(all, key=lambda x: x.id)
-        cluster_size = len(all)
-        return cluster_size
 
     def _autoAcquireThread(self):
         self.__initialised.set()
@@ -108,13 +109,12 @@ class ReplResourceManager(object):
                 time.sleep(0.1)
                 if time.time() - self.__lastProlongateTime < float(self.__autoUnlockTime) / 4.0:
                     continue
-                syncObj: SyncObj = self.__lockImpl._syncObj
+                syncObj = self.__lockImpl._syncObj
                 if syncObj is None:
                     continue
                 if syncObj._getLeader() is not None:
                     self.__lastProlongateTime = time.time()
                     self.__lockImpl.prolongate(self.__selfID, time.time())
-
         except ReferenceError:
             pass
 
@@ -159,6 +159,12 @@ class ReplResourceManager(object):
         :return True if lock is acquired by ourselves.
          """
         return self.__lockImpl.isAcquired(lockID, self.__selfID, time.time())
+
+    def isOwned(self, lockID):
+        return self.__lockImpl.isOwned(lockID, self.__selfID, time.time())
+
+    def rawData(self):
+        return self.__lockImpl.rawData()
 
     def release(self, lockID, callback=None, sync=False, timeout=None):
         """

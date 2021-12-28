@@ -2,6 +2,7 @@ import asyncio
 import multiprocessing
 import sys
 import threading
+import time
 from multiprocessing import process
 
 import dill
@@ -17,15 +18,27 @@ from pysyncobj.batteries import ReplDict, ReplList
 
 from push.mgr.code_util import load_src
 from push.mgr.qm import QueueManager
+from push.mgr.repl_resource_leader import ReplHostManager
 from push.mgr.task import DoTask
 
 print("starting")
 
 
+# TODO: add host capabilities to a data structure to capture the sub-partition sizes
+#       use either the current strategy, which is the connectedness or
+#         a repl lock so taht if the host disappears, we ignore it
 def get_cluster_info(only_active=False):
-    other_active_nodes = [x for x in sync_lock.otherNodes if sync_lock.isNodeConnected(x)] if only_active else sync_lock.otherNodes
-    all_nodes = [sync_lock.selfNode, *other_active_nodes]
+    # other_active_nodes = [x for x in sync_lock.otherNodes if sync_lock.isNodeConnected(x)] if only_active else sync_lock.otherNodes
+
+    all_nodes = [sync_lock.selfNode, *sync_lock.otherNodes]
+    if only_active:
+        print(f"repl hosts: {repl_hosts.rawData().keys()}")
+        all_nodes = [x for x in all_nodes if repl_hosts.isOwned(x.id)]
+        if sync_lock.selfNode not in all_nodes:
+            return 0, 0
     all_nodes = sorted(all_nodes, key=lambda x: x.id)
+    # all_nodes = repl_hosts.()
+    print(all_nodes)
     return len(all_nodes), all_nodes.index(sync_lock.selfNode)
 
 
@@ -47,6 +60,8 @@ class MyReplDict(ReplDict):
 
 
 kvstore = MyReplDict()
+
+repl_hosts = ReplHostManager(autoUnlockTime=5)
 
 
 class ReplTimeseries(SyncObjConsumer):
@@ -83,24 +98,31 @@ class ReplTimeseries(SyncObjConsumer):
 
 
 def process_ts_updates(idx_data, keys, data):
-    cluster_size, my_partition = get_cluster_info(only_active=True)
-    print(f"post-processing: {idx_data} {keys} {cluster_size} {my_partition}")
-    print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
-    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == my_partition]
+    # start_t = time.perf_counter_ns()
+    cluster_size, partition_id = get_cluster_info(only_active=True)
+    if cluster_size == 0:
+        return
+    # print(f"strat time 1: {(time.perf_counter_ns() - start_t) / 100000}")
+    print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")
+    # print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
+#    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == partition_id]
+    owned_strategies = filter(lambda x: hash(x) % cluster_size == partition_id, repl_strategies.rawData())
     print(f"owned strategies: {[x.id for x in owned_strategies]}")
+    # print(f"strat time 2: {(time.perf_counter_ns() - start_t) / 100000}")
     sym_map = dict()
     for s in owned_strategies:
         for symbol in s.symbols:
             x = sym_map.get(symbol)
             if x is None:
-                x = list()
+                x = set()
                 sym_map[symbol] = x
-            x.append(s)
+            x.add(s)
+    # print(f"strat time: {(time.perf_counter_ns() - start_t) / 100000}")
     for symbol in keys:
-        print(f"symbol: {symbol}")
+        # print(f"symbol: {symbol}")
         strategies = sym_map.get(symbol)
-        if strategies is not None:
-            print(f"applying strategies: {[x.id for x in strategies]}")
+        # if strategies is not None:
+        #     print(f"applying strategies: {[x.id for x in strategies]}")
 
 
 repl_ts = ReplTimeseries(on_append=process_ts_updates)
@@ -109,8 +131,9 @@ repl_strategies = ReplList()
 
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies])
+sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies, repl_hosts])
 
+repl_hosts.tryAcquire(sync_lock.selfNode.id, sync=True)
 
 class DoRegister:
     def apply(self, name, src):
