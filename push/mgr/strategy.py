@@ -4,7 +4,7 @@ import typing
 class Strategy:
 
     def __init__(self,
-                 id: str,
+                 id: int,
                  name: str,
                  symbols: typing.List[str],
                  capabilities: typing.Optional[typing.List[str]] = None):
@@ -14,5 +14,5 @@ class Strategy:
         self.capabilities = capabilities
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(int(self.id))
 

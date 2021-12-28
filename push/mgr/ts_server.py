@@ -2,27 +2,31 @@ import asyncio
 import multiprocessing
 import sys
 import threading
-from multiprocessing import process, util
+from multiprocessing import process
 
 import dill
 import numpy as np
 import pandas as pd
 import psutil
+import tornado.gen
+import tornado.httpserver
+import tornado.ioloop
+import tornado.web
 from pysyncobj import SyncObj, replicated, replicated_sync, SyncObjConsumer
-from pysyncobj.batteries import ReplDict
+from pysyncobj.batteries import ReplDict, ReplList
 
 from push.mgr.code_util import load_src
 from push.mgr.qm import QueueManager
-from push.mgr.strategy import Strategy
 from push.mgr.task import DoTask
 
-import tornado.web
-import tornado.ioloop
-import tornado.httpserver
-import tornado.gen
-
-
 print("starting")
+
+
+def get_cluster_info(only_active=False):
+    other_active_nodes = [x for x in sync_lock.otherNodes if sync_lock.isNodeConnected(x)] if only_active else sync_lock.otherNodes
+    all_nodes = [sync_lock.selfNode, *other_active_nodes]
+    all_nodes = sorted(all_nodes, key=lambda x: x.id)
+    return len(all_nodes), all_nodes.index(sync_lock.selfNode)
 
 
 class MyReplDict(ReplDict):
@@ -46,7 +50,7 @@ kvstore = MyReplDict()
 
 
 class ReplTimeseries(SyncObjConsumer):
-    def __init__(self, on_append = None):
+    def __init__(self, on_append=None):
         super(ReplTimeseries, self).__init__()
         self.__data = dict()
         self.__index_data = list()
@@ -79,14 +83,33 @@ class ReplTimeseries(SyncObjConsumer):
 
 
 def process_ts_updates(idx_data, keys, data):
-    print(f"post-processing: {idx_data} {keys}")
+    cluster_size, my_partition = get_cluster_info(only_active=True)
+    print(f"post-processing: {idx_data} {keys} {cluster_size} {my_partition}")
+    print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
+    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == my_partition]
+    print(f"owned strategies: {[x.id for x in owned_strategies]}")
+    sym_map = dict()
+    for s in owned_strategies:
+        for symbol in s.symbols:
+            x = sym_map.get(symbol)
+            if x is None:
+                x = list()
+                sym_map[symbol] = x
+            x.append(s)
+    for symbol in keys:
+        print(f"symbol: {symbol}")
+        strategies = sym_map.get(symbol)
+        if strategies is not None:
+            print(f"applying strategies: {[x.id for x in strategies]}")
 
 
 repl_ts = ReplTimeseries(on_append=process_ts_updates)
 
+repl_strategies = ReplList()
+
 selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts])
+sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies])
 
 
 class DoRegister:
@@ -99,19 +122,19 @@ class DoRegister:
 dr = DoRegister()
 
 
-class DoRegisterCallback:
-    def apply(self, name, src):
-        global onrep
-        src = dill.loads(src)
-        if isinstance(src, type):
-            q = src()
-            onrep.handle_map[name] = q.apply if hasattr(q, 'apply') else q
-        else:
-            onrep.handle_map[name] = src
-
-
-drc = DoRegisterCallback()
-QueueManager.register("do_register_callback", callable=lambda: drc)
+# class DoRegisterCallback:
+#     def apply(self, name, src):
+#         global onrep
+#         src = dill.loads(src)
+#         if isinstance(src, type):
+#             q = src()
+#             onrep.handle_map[name] = q.apply if hasattr(q, 'apply') else q
+#         else:
+#             onrep.handle_map[name] = src
+#
+#
+# drc = DoRegisterCallback()
+# QueueManager.register("do_register_callback", callable=lambda: drc)
 
 
 class DoLambda:
@@ -167,24 +190,14 @@ QueueManager.register('kvstore', callable=lambda: kvstore)
 QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
 QueueManager.register('locale_capabilities', callable=lambda: dlc)
-
-# TODO: one set of strategies and replicate it into a repllist
-symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']
-strategy_capabilities = [None, 'GPU']
-np.random.seed(0)
-strategies = [Strategy(id=str(i), name=f"s_{i}", symbols=np.random.choice(symbols, 2), capabilities=np.random.choice(strategy_capabilities)) for i in range(10)]
+QueueManager.register('strategies', callable=lambda: repl_strategies)
 
 print(f"booting: ")
 print(f"status: {sync_lock.getStatus()}")
 print(f"self: {sync_lock.selfNode}")
 print(f"others: {sync_lock.otherNodes}")
-all = [sync_lock.selfNode, *sync_lock.otherNodes]
-all = sorted(all, key=lambda x: x.id)
-cluster_size = len(all)
-my_partition = all.index(sync_lock.selfNode)
-print(my_partition)
-print([x for x in all])
-print(f"owned strategies: {[x for x in strategies if hash(x) % cluster_size == my_partition]}")
+cluster_size, my_partition = get_cluster_info()
+print(f"my_partition={my_partition}")
 
 # Start up
 mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
@@ -238,11 +251,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def make_app(kvstore):
     return tornado.web.Application([
-       ("/", MainHandler, {'kvstore': kvstore})
-        # ("/", MainHandler)
-        # ("/counter", CounterHandler, {'sync_lock': sync_lock}),
-        # ("/status", StatusHandler, {'sync_lock': sync_lock}),
-        # ("/toggle", ToggleHandler, {'sync_lock': sync_lock}),
+        ("/", MainHandler, {'kvstore': kvstore})
     ])
 
 
