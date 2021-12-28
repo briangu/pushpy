@@ -133,7 +133,8 @@ selfAddr = sys.argv[1]  # "localhost:10000"
 partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
 sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies, repl_hosts])
 
-repl_hosts.tryAcquire(sync_lock.selfNode.id, sync=True)
+while not repl_hosts.tryAcquire(sync_lock.selfNode.id, sync=True):
+    pass
 
 class DoRegister:
     def apply(self, name, src):
