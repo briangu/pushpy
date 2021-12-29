@@ -5,113 +5,48 @@ import time
 from multiprocessing import process
 
 import dill
-import numpy as np
-import pandas as pd
 import tornado.gen
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
-from pysyncobj import SyncObj, replicated, replicated_sync, SyncObjConsumer
-from pysyncobj.batteries import ReplDict, ReplList
+from pysyncobj import SyncObj
+from pysyncobj.batteries import ReplList
 
+from push.mgr.batteries import MyReplDict, ReplTimeseries, ReplHostManager
 from push.mgr.code_util import load_src
 from push.mgr.host_resources import HostResources, GPUResources
 from push.mgr.qm import QueueManager
-from push.mgr.repl_resource_leader import ReplHostManager
 from push.mgr.task import DoTask
 
 print("starting")
 
-# TODO: add host capabilities to a data structure to capture the sub-partition sizes
-#       use either the current strategy, which is the connectedness or
-#         a repl lock so taht if the host disappears, we ignore it
 
-# def in_same_cluster(hc1, hc2):
-#     return not set(hc1['gpu_info']).isdisjoint(set(hc2['gpu_info']))
-
-
-def get_cluster_info(so):
+def get_cluster_info(hosts, so):
     all_nodes = [so.selfNode, *so.otherNodes]
-    all_host_resources = repl_hosts.lockData()
+    all_host_resources = hosts.lockData()
     if so.selfNode.id not in all_host_resources:
         return 0, 0, {}
     this_host_resources = all_host_resources[so.selfNode.id]
-    print(f"this host resources: {type(this_host_resources)} {this_host_resources}")
-    all_nodes = [x for x in all_nodes if repl_hosts.isOwned(x.id)]
+    all_nodes = [x for x in all_nodes if hosts.isOwned(x.id)]
     if so.selfNode not in all_nodes:
         return 0, 0, {}
     all_nodes = sorted(all_nodes, key=lambda x: x.id)
     all_nodes = [x for x in all_nodes if this_host_resources.is_compatible(all_host_resources[x.id])]
-    # print(all_nodes)
-    return len(all_nodes), all_nodes.index(so.selfNode), all_host_resources[so.selfNode.id]
+    return len(all_nodes), all_nodes.index(so.selfNode), this_host_resources
 
 
-class MyReplDict(ReplDict):
-
-    def __init__(self, on_set=None):
-        super(MyReplDict, self).__init__()
-        self.on_set = on_set
-
-    @replicated_sync
-    def set_sync(self, key, value):
-        self.set(key, value, _doApply=True)
-
-    @replicated
-    def set(self, key, value):
-        super().set(key, value, _doApply=True)
-        if self.on_set is not None:
-            self.on_set(key, value)
-
-
-kvstore = MyReplDict()
-
-repl_hosts = ReplHostManager(autoUnlockTime=5)
-
-
-class ReplTimeseries(SyncObjConsumer):
-    def __init__(self, on_append=None):
-        super(ReplTimeseries, self).__init__()
-        self.__data = dict()
-        self.__index_data = list()
-        self.__on_append = on_append
-
-    @replicated
-    def reset(self):
-        self.__data = dict()
-        self.__index_data = list()
-
-    @replicated
-    def append(self, idx_data, keys, data):
-        self.__index_data.append(idx_data)
-        for key, key_data in zip(keys, data):
-            col = self.__data.get(key)
-            if col is None:
-                col = list()
-                self.__data[key] = col
-            key_data = key_data if isinstance(key_data, list) else [key_data]
-            col.append(key_data)
-        if self.__on_append is not None:
-            self.__on_append(idx_data, keys, data)
-
-    def flatten(self, keys=None):
-        keys = keys or list(self.__data.keys())
-        df = pd.DataFrame(columns=keys, index=self.__index_data)
-        for key in keys:
-            df[key] = np.concatenate(self.__data[key])
-        return df
-
-
+# def mk_process_cb(hosts):
 def process_ts_updates(idx_data, keys, data):
     # start_t = time.perf_counter_ns()
-    cluster_size, partition_id, host_capabilities = get_cluster_info(sync_lock)
+    cluster_size, partition_id, host_capabilities = get_cluster_info(repl_hosts, sync_lock)
     if cluster_size == 0:
         return
     # print(f"strat time 1: {(time.perf_counter_ns() - start_t) / 100000}")
     print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")
     # print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
-#    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == partition_id]
+    #    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == partition_id]
     capable_strategies = [x for x in repl_strategies.rawData() if host_resources.has_capacity(x.requirements)]
-    print(f"capable_strategies: {capable_strategies}")
+    # print(f"capable_strategies: {capable_strategies}")
     owned_strategies = [x for x in capable_strategies if hash(x) % cluster_size == partition_id]
     print(f"owned strategies: {[x.id for x in owned_strategies]}")
     # print(f"owned strategies: {owned_strategies}")
@@ -133,20 +68,22 @@ def process_ts_updates(idx_data, keys, data):
         strategies = sym_map.get(symbol)
         # if strategies is not None:
         #     print(f"applying strategies: {[x.id for x in strategies]}")
+    # return process_ts_updates
 
 
+repl_hosts = ReplHostManager(autoUnlockTime=5)
 repl_ts = ReplTimeseries(on_append=process_ts_updates)
-
+repl_kvstore = MyReplDict()
 repl_strategies = ReplList()
 
 gpu_capabilities = sys.argv[1]
 selfAddr = sys.argv[2]  # "localhost:10000"
 my_port = int(selfAddr.split(":")[1])
 partners = sys.argv[3:]  # ["localhost:10001", "localhost:10002"]
-sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies, repl_hosts])
+sync_lock = SyncObj(selfAddr, partners, consumers=[repl_kvstore, repl_ts, repl_strategies, repl_hosts])
 
 host_resources = HostResources.create()
-host_resources.gpu = GPUResources(count=np.random.randint(0, 2))
+host_resources.gpu = GPUResources(count=1 if 'GPU' in gpu_capabilities else 0)
 
 while not repl_hosts.tryAcquire(sync_lock.selfNode.id, data=host_resources, sync=True):
     time.sleep(0.1)
@@ -154,7 +91,7 @@ while not repl_hosts.tryAcquire(sync_lock.selfNode.id, data=host_resources, sync
 
 class DoRegister:
     def apply(self, name, src):
-        src = dill.loads(src)
+        src = load_src(repl_kvstore, src)
         q = src()
         QueueManager.register(name, callable=lambda: q)
 
@@ -179,7 +116,7 @@ dr = DoRegister()
 
 class DoLambda:
     def apply(self, src, *args, **kwargs):
-        src = load_src(kvstore, src)
+        src = load_src(repl_kvstore, src)
         return src(*args, **kwargs)
 
 
@@ -192,44 +129,23 @@ class DoRegistry:
 
 
 dreg = DoRegistry()
-
-class DoKvStore():
-    def set(self, k, v):
-        global kvstore
-        # kvstore.set(k, v)
-        print(k, v)
-
-    def get(self, k):
-        global kvstore
-        # return kvstore.get(k)
-        print(k)
-
-
-dkvs = DoKvStore()
-
-dotask = DoTask(kvstore)
-
-# print(dlc.apply())
+dotask = DoTask(repl_kvstore)
 
 QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('apply_lambda', callable=lambda: dl)
 QueueManager.register('get_registry', callable=lambda: dreg)
-QueueManager.register('kvstore', callable=lambda: kvstore)
+QueueManager.register('kvstore', callable=lambda: repl_kvstore)
 QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
-# QueueManager.register('locale_capabilities', callable=lambda: capabilities)
+QueueManager.register('host_resources', callable=lambda: host_resources)
 QueueManager.register('strategies', callable=lambda: repl_strategies)
 
-print(f"booting: ")
-print(f"status: {sync_lock.getStatus()}")
-print(f"self: {sync_lock.selfNode}")
-print(f"others: {sync_lock.otherNodes}")
-# cluster_size, my_partition = get_cluster_info(sync_lock)
-# print(f"my_partition={my_partition}")
-
-# Start up
+# print(f"booting: ")
+# print(f"status: {sync_lock.getStatus()}")
+# print(f"self: {sync_lock.selfNode}")
+# print(f"others: {sync_lock.otherNodes}")
 mgr_port = (my_port % 1000) + 50000
-print(f"manager port: {mgr_port}")
+# print(f"manager port: {mgr_port}")
 
 
 def serve_forever(mgr_port, auth_key):
@@ -286,14 +202,12 @@ def make_app(kvstore):
 # TODO: i think this code can be rewritten to use asyncio / twisted
 m, mt = serve_forever(mgr_port, b'password')
 
-webserver = tornado.httpserver.HTTPServer(make_app(kvstore))
-# port = 11000 + my_partition
-port = 1000 + int(sync_lock.selfNode.id.split(":")[1])
-print(f"my port: {port}")
-webserver.listen(port)
-# webserver.start(2)
+webserver = tornado.httpserver.HTTPServer(make_app(repl_kvstore))
+web_port = 1000 + int(sync_lock.selfNode.id.split(":")[1])
+print(f"my web port: {web_port}")
+webserver.listen(web_port)
 
-print(f"starting webserver")
+# print(f"starting webserver")
 # tornado.ioloop.IOLoop.current().start()
 loop = asyncio.get_event_loop()
 try:
@@ -301,6 +215,6 @@ try:
 finally:
     loop.run_until_complete(loop.shutdown_asyncgens())
     loop.close()
-print(f"stopping webserver")
+# print(f"stopping webserver")
 
 mt.join()

@@ -6,7 +6,61 @@ import threading
 import time
 import weakref
 
+import numpy as np
+import pandas as pd
 from pysyncobj import replicated, SyncObjConsumer
+from pysyncobj import replicated_sync
+from pysyncobj.batteries import ReplDict
+
+
+class MyReplDict(ReplDict):
+
+    def __init__(self, on_set=None):
+        super(MyReplDict, self).__init__()
+        self.on_set = on_set
+
+    @replicated_sync
+    def set_sync(self, key, value):
+        self.set(key, value, _doApply=True)
+
+    @replicated
+    def set(self, key, value):
+        super().set(key, value, _doApply=True)
+        if self.on_set is not None:
+            self.on_set(key, value)
+
+
+class ReplTimeseries(SyncObjConsumer):
+    def __init__(self, on_append=None):
+        super(ReplTimeseries, self).__init__()
+        self.__data = dict()
+        self.__index_data = list()
+        self.__on_append = on_append
+
+    @replicated
+    def reset(self):
+        self.__data = dict()
+        self.__index_data = list()
+
+    @replicated
+    def append(self, idx_data, keys, data):
+        self.__index_data.append(idx_data)
+        for key, key_data in zip(keys, data):
+            col = self.__data.get(key)
+            if col is None:
+                col = list()
+                self.__data[key] = col
+            key_data = key_data if isinstance(key_data, list) else [key_data]
+            col.append(key_data)
+        if self.__on_append is not None:
+            self.__on_append(idx_data, keys, data)
+
+    def flatten(self, keys=None):
+        keys = keys or list(self.__data.keys())
+        df = pd.DataFrame(columns=keys, index=self.__index_data)
+        for key in keys:
+            df[key] = np.concatenate(self.__data[key])
+        return df
 
 
 class _ReplHostManagerImpl(SyncObjConsumer):
