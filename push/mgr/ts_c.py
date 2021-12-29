@@ -15,32 +15,17 @@ class BatchProcess:
         self.ts = _ts or repl_ts
 
     def apply(self):
-        import datetime
-        from datetime import timezone, timedelta
-        import random
+        flat_ts = self.ts.flatten()
+        print(flat_ts)
+        return flat_ts
 
-        stocks = ['MSFT', 'GOOG', 'WDAY']
-        now = datetime.datetime.now(timezone.utc)
-        for i in range(100, 1, -1):
-            t = now - timedelta(days=i)
-            d = [random.uniform(10, 100) for _ in stocks]
-            self.ts.append(t, stocks, d)
 
 ts = m.ts()
-dl = m.apply_lambda()
-dl.apply(src=dill.dumps(BatchProcess))
-
-# ts = m.ts()
-#
-# stocks = ['MSFT', 'GOOG', 'WDAY']
-# now = datetime.datetime.now(timezone.utc)
-# for i in range(100, 0, -1):
-#     t = now - timedelta(days=i)
-#     s = [random.choice(stocks)]
-#     d = [random.uniform(10, 100)]
-#     ts.append(t, s, d)
+dt = m.tasks()
+r = dt.apply(dill.dumps(BatchProcess))
+print(r)
 
 print(m.ts().flatten())
 
-r = dl.apply(src=dill.dumps(lambda *args, **kwargs: repl_ts.flatten()))
+r = dt.apply(src=dill.dumps(lambda *args, **kwargs: repl_ts.flatten()))
 print(r)

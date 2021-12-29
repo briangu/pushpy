@@ -26,3 +26,4 @@ strategies = [Strategy(id=i, name=f"s_{i}", symbols=np.random.choice(symbols, 2)
 
 repl_strategies = m.strategies()
 repl_strategies.reset(strategies)
+

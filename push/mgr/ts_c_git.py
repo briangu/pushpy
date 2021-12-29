@@ -30,11 +30,14 @@ class DataGeneratorTask:
             self.ts.append(now, stocks, d)
             time.sleep(1)
 
+
 def mk_on_get_c(v):
     def on_get(self):
         self.write(f"lambda world! {v}")
         self.finish()
+
     return on_get
+
 
 kvstore = m.kvstore()
 kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
@@ -43,7 +46,9 @@ on_get_v = kvstore.get("on_get_v")
 if on_get_v is None:
     on_get_v = 0
 on_get_v += 1
-kvstore.set_sync("on_get_v", on_get_v)
+
+# add new version of code
 kvstore.set_sync(f"on_get_v{on_get_v}", dill.dumps(mk_on_get_c(on_get_v)))
 
-
+# move head to latest
+kvstore.set_sync("on_get_v", on_get_v)

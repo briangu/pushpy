@@ -20,8 +20,12 @@ class DoTask:
     def __init__(self, kvstore):
         self.kvstore = kvstore
 
-    def run(self, task_type, src, name=None):
+    def apply(self, src, *args, **kwargs):
+        return self.run(task_type="lambda", src=src, *args, **kwargs)
+
+    def run(self, task_type, src, *args, **kwargs):
         src = load_src(self.kvstore, src)
+        name = kwargs.get("name")
         name = name or str(uuid.uuid4())
         if name in self.task_threads:
             raise RuntimeError(f"task already running: {name}")
@@ -32,6 +36,8 @@ class DoTask:
             task_context.thread.start()
             self.task_threads[name] = task_context
             print(self.task_threads)
+        elif task_type == "lambda":
+            return src(*args, **kwargs)
 
     def stop(self, name):
         if name not in self.task_threads:

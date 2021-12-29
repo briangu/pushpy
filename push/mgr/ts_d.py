@@ -34,7 +34,6 @@ class DataGeneratorTask:
 ts = m.ts().reset()
 
 kvstore = m.kvstore()
-
 kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
 
 dt = m.tasks()

@@ -13,10 +13,10 @@ from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
 
 
-class MyReplDict(ReplDict):
+class ReplSyncDict(ReplDict):
 
     def __init__(self, on_set=None):
-        super(MyReplDict, self).__init__()
+        super(ReplSyncDict, self).__init__()
         self.on_set = on_set
 
     @replicated_sync
