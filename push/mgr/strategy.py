@@ -1,5 +1,7 @@
 import typing
 
+from push.mgr.host_resources import HostRequirements
+
 
 class Strategy:
 
@@ -7,11 +9,11 @@ class Strategy:
                  id: int,
                  name: str,
                  symbols: typing.List[str],
-                 capabilities: typing.Optional[typing.List[str]] = None):
+                 requirements: typing.Optional[HostRequirements] = None):
         self.id = id
         self.name = name
         self.symbols = symbols
-        self.capabilities = capabilities
+        self.requirements = requirements
 
     def __hash__(self):
         return hash(int(self.id))

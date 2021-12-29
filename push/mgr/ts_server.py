@@ -1,5 +1,4 @@
 import asyncio
-import multiprocessing
 import sys
 import threading
 import time
@@ -8,7 +7,6 @@ from multiprocessing import process
 import dill
 import numpy as np
 import pandas as pd
-import psutil
 import tornado.gen
 import tornado.httpserver
 import tornado.ioloop
@@ -17,6 +15,7 @@ from pysyncobj import SyncObj, replicated, replicated_sync, SyncObjConsumer
 from pysyncobj.batteries import ReplDict, ReplList
 
 from push.mgr.code_util import load_src
+from push.mgr.host_resources import HostResources, GPUResources
 from push.mgr.qm import QueueManager
 from push.mgr.repl_resource_leader import ReplHostManager
 from push.mgr.task import DoTask
@@ -27,23 +26,24 @@ print("starting")
 #       use either the current strategy, which is the connectedness or
 #         a repl lock so taht if the host disappears, we ignore it
 
-def in_same_cluster(hc1, hc2):
-    return not set(hc1['gpu_info']).isdisjoint(set(hc2['gpu_info']))
+# def in_same_cluster(hc1, hc2):
+#     return not set(hc1['gpu_info']).isdisjoint(set(hc2['gpu_info']))
 
 
 def get_cluster_info(so):
     all_nodes = [so.selfNode, *so.otherNodes]
-    host_capabilities = repl_hosts.lockData()
-    if so.selfNode.id not in host_capabilities:
+    all_host_resources = repl_hosts.lockData()
+    if so.selfNode.id not in all_host_resources:
         return 0, 0, {}
-    print(f"host_capabilities: {host_capabilities[so.selfNode.id]}")
+    this_host_resources = all_host_resources[so.selfNode.id]
+    print(f"this host resources: {type(this_host_resources)} {this_host_resources}")
     all_nodes = [x for x in all_nodes if repl_hosts.isOwned(x.id)]
     if so.selfNode not in all_nodes:
         return 0, 0, {}
     all_nodes = sorted(all_nodes, key=lambda x: x.id)
-    all_nodes = [x for x in all_nodes if in_same_cluster(host_capabilities[x.id], host_capabilities[so.selfNode.id])]
+    all_nodes = [x for x in all_nodes if this_host_resources.is_compatible(all_host_resources[x.id])]
     # print(all_nodes)
-    return len(all_nodes), all_nodes.index(so.selfNode), host_capabilities[so.selfNode.id]
+    return len(all_nodes), all_nodes.index(so.selfNode), all_host_resources[so.selfNode.id]
 
 
 class MyReplDict(ReplDict):
@@ -101,21 +101,6 @@ class ReplTimeseries(SyncObjConsumer):
         return df
 
 
-def can_execute_strategy(host_capabilities, strategy):
-    # print(f"can_execute_strategy: {host_capabilities} {strategy.capabilities}")
-    for c in strategy.capabilities:
-        # print(f"capability: {c}")
-        # if c == 'GPU':
-        #     gpu_info = host_capabilities.get('gpu_info')
-        #     if gpu_info is None or c not in gpu_info:
-        #         return False
-        # elif c == 'CPU':
-        gpu_info = host_capabilities.get('gpu_info')
-        if gpu_info is None or c not in gpu_info:
-            return False
-    return True
-
-
 def process_ts_updates(idx_data, keys, data):
     # start_t = time.perf_counter_ns()
     cluster_size, partition_id, host_capabilities = get_cluster_info(sync_lock)
@@ -125,7 +110,7 @@ def process_ts_updates(idx_data, keys, data):
     print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")
     # print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
 #    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == partition_id]
-    capable_strategies = [x for x in repl_strategies.rawData() if can_execute_strategy(host_capabilities, x)]
+    capable_strategies = [x for x in repl_strategies.rawData() if host_resources.has_capacity(x.requirements)]
     print(f"capable_strategies: {capable_strategies}")
     owned_strategies = [x for x in capable_strategies if hash(x) % cluster_size == partition_id]
     print(f"owned strategies: {[x.id for x in owned_strategies]}")
@@ -160,25 +145,10 @@ my_port = int(selfAddr.split(":")[1])
 partners = sys.argv[3:]  # ["localhost:10001", "localhost:10002"]
 sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies, repl_hosts])
 
-strategy_capabilities = ['CPU', 'GPU']
+host_resources = HostResources.create()
+host_resources.gpu = GPUResources(count=np.random.randint(0, 2))
 
-
-class DoLocaleCapabilities:
-    def get_memory_stats(self):
-        vm = psutil.virtual_memory()
-        return {'total': vm.total, 'available': vm.available}
-
-    def apply(self):
-        return {
-            'cpu_count': multiprocessing.cpu_count(),
-            'virtual_memory': self.get_memory_stats(),
-            'gpu_info': [gpu_capabilities]
-        }
-
-dlc = DoLocaleCapabilities()
-
-capabilities = dlc.apply()
-while not repl_hosts.tryAcquire(sync_lock.selfNode.id, data=capabilities, sync=True):
+while not repl_hosts.tryAcquire(sync_lock.selfNode.id, data=host_resources, sync=True):
     time.sleep(0.1)
 
 
@@ -239,7 +209,7 @@ dkvs = DoKvStore()
 
 dotask = DoTask(kvstore)
 
-print(dlc.apply())
+# print(dlc.apply())
 
 QueueManager.register('do_register', callable=lambda: dr)
 QueueManager.register('apply_lambda', callable=lambda: dl)
@@ -247,7 +217,7 @@ QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('kvstore', callable=lambda: kvstore)
 QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
-QueueManager.register('locale_capabilities', callable=lambda: capabilities)
+# QueueManager.register('locale_capabilities', callable=lambda: capabilities)
 QueueManager.register('strategies', callable=lambda: repl_strategies)
 
 print(f"booting: ")

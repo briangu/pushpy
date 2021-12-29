@@ -10,3 +10,9 @@ push~=0.3.10
 tornado~=6.1
 pysyncobj~=0.3.10
 psutil~=5.8.0
+
+websockets~=10.1
+websocket~=0.2.1
+gevent~=21.12.0
+GPUtil~=1.4.0
+lock~=2018.3.25.2110

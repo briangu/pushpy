@@ -1,0 +1,169 @@
+import typing
+
+import GPUtil
+import psutil
+
+
+class Resource:
+
+    def __str__(self):
+        return str(vars(self))
+
+    def __repr__(self):
+        return self.__str__()
+
+    def update(self):
+        pass
+
+    def has_capacity(self, requirement):
+        pass
+
+    def is_compatible(self, other):
+        return True
+
+
+class MemoryRequirements(Resource):
+
+    total: int
+
+    def __init__(self, total):
+        self.total = total
+
+
+class MemoryResources(Resource):
+    total: int
+    available: int
+
+    def __init__(self, total, available):
+        self.total = total
+        self.available = available
+
+    def update(self):
+        vm = psutil.virtual_memory()
+        self.available = vm.available
+        return self
+
+    def has_capacity(self, requirement: MemoryRequirements):
+        return self.available >= requirement.total
+
+    @staticmethod
+    def create():
+        vm = psutil.virtual_memory()
+        return MemoryResources(vm.total, vm.available)
+
+
+class CPURequirements(Resource):
+
+    count: int
+
+    def __init__(self, count):
+        self.count = count
+
+
+class CPUResources(Resource):
+    count: int
+    available: int
+
+    def __init__(self, count, available):
+        self.count = count
+        self.available = available
+
+    def update(self):
+        self.available = int(((100 - psutil.cpu_percent()) / 100) * self.count)
+        return self
+
+    def has_capacity(self, requirement: CPURequirements):
+        return self.available >= requirement.count
+
+    @staticmethod
+    def create():
+        count = psutil.cpu_count()
+        available = int((100 - psutil.cpu_percent()) * count)
+        return CPUResources(count=count, available=available)
+
+
+class GPURequirements(Resource):
+
+    count: int
+    # TODO: include memory
+
+    def __init__(self, count):
+        self.count = count
+
+
+class GPUResources(Resource):
+    count: int
+    # TODO: include memory
+    available: int
+
+    def __init__(self, count):
+        self.count = count
+        self.available = count
+
+    def update(self):
+        # TODO update based on load
+        pass
+
+    def has_capacity(self, requirement: GPURequirements):
+        return self.available >= requirement.count if requirement.count > 0 else self.available == 0
+
+    def is_compatible(self, other):
+        return (self.count > 0 and other.count > 0) or (self.count == other.count)
+
+    @staticmethod
+    def create():
+        gpus = GPUtil.getGPUs()
+        return GPUResources(count=len(gpus))
+
+
+class HostRequirements(Resource):
+
+    cpu: typing.Optional[CPURequirements]
+    memory: typing.Optional[MemoryRequirements]
+    gpu: typing.Optional[GPURequirements]
+
+    def __init__(self,
+                 cpu: typing.Optional[CPURequirements],
+                 memory: typing.Optional[MemoryRequirements],
+                 gpu: typing.Optional[GPURequirements]):
+        self.cpu = cpu
+        self.memory = memory
+        self.gpu = gpu
+
+
+class HostResources(Resource):
+    cpu: CPUResources
+    memory: MemoryResources
+    gpu: GPUResources
+
+    def __init__(self,
+                 cpu: CPUResources,
+                 memory: MemoryResources,
+                 gpu: GPUResources):
+        self.cpu = cpu
+        self.memory = memory
+        self.gpu = gpu
+
+    def update(self):
+        self.cpu.update()
+        self.memory.update()
+        self.gpu.update()
+        return self
+
+    def is_compatible(self, other):
+        return self.cpu.is_compatible(other.cpu) and \
+               self.memory.is_compatible(other.memory) and \
+               self.gpu.is_compatible(other.gpu)
+
+    def has_capacity(self, requirement: HostRequirements):
+        return (self.cpu.has_capacity(requirement.cpu) if requirement.cpu is not None else True) and \
+               (self.memory.has_capacity(requirement.memory) if requirement.memory is not None else True) and \
+               (self.gpu.has_capacity(requirement.gpu) if requirement.gpu is not None else True)
+
+    @staticmethod
+    def create():
+        return HostResources(
+            cpu=CPUResources.create(),
+            memory=MemoryResources.create(),
+            gpu=GPUResources.create()
+        )
