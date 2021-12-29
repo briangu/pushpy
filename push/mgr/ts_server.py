@@ -23,23 +23,27 @@ from push.mgr.task import DoTask
 
 print("starting")
 
-
 # TODO: add host capabilities to a data structure to capture the sub-partition sizes
 #       use either the current strategy, which is the connectedness or
 #         a repl lock so taht if the host disappears, we ignore it
-def get_cluster_info(only_active=False):
-    # other_active_nodes = [x for x in sync_lock.otherNodes if sync_lock.isNodeConnected(x)] if only_active else sync_lock.otherNodes
 
-    all_nodes = [sync_lock.selfNode, *sync_lock.otherNodes]
-    if only_active:
-        print(f"repl hosts: {repl_hosts.rawData().keys()}")
-        all_nodes = [x for x in all_nodes if repl_hosts.isOwned(x.id)]
-        if sync_lock.selfNode not in all_nodes:
-            return 0, 0
+def in_same_cluster(hc1, hc2):
+    return not set(hc1['gpu_info']).isdisjoint(set(hc2['gpu_info']))
+
+
+def get_cluster_info(so):
+    all_nodes = [so.selfNode, *so.otherNodes]
+    host_capabilities = repl_hosts.lockData()
+    if so.selfNode.id not in host_capabilities:
+        return 0, 0, {}
+    print(f"host_capabilities: {host_capabilities[so.selfNode.id]}")
+    all_nodes = [x for x in all_nodes if repl_hosts.isOwned(x.id)]
+    if so.selfNode not in all_nodes:
+        return 0, 0, {}
     all_nodes = sorted(all_nodes, key=lambda x: x.id)
-    # all_nodes = repl_hosts.()
-    print(all_nodes)
-    return len(all_nodes), all_nodes.index(sync_lock.selfNode)
+    all_nodes = [x for x in all_nodes if in_same_cluster(host_capabilities[x.id], host_capabilities[so.selfNode.id])]
+    # print(all_nodes)
+    return len(all_nodes), all_nodes.index(so.selfNode), host_capabilities[so.selfNode.id]
 
 
 class MyReplDict(ReplDict):
@@ -97,20 +101,41 @@ class ReplTimeseries(SyncObjConsumer):
         return df
 
 
+def can_execute_strategy(host_capabilities, strategy):
+    # print(f"can_execute_strategy: {host_capabilities} {strategy.capabilities}")
+    for c in strategy.capabilities:
+        # print(f"capability: {c}")
+        # if c == 'GPU':
+        #     gpu_info = host_capabilities.get('gpu_info')
+        #     if gpu_info is None or c not in gpu_info:
+        #         return False
+        # elif c == 'CPU':
+        gpu_info = host_capabilities.get('gpu_info')
+        if gpu_info is None or c not in gpu_info:
+            return False
+    return True
+
+
 def process_ts_updates(idx_data, keys, data):
     # start_t = time.perf_counter_ns()
-    cluster_size, partition_id = get_cluster_info(only_active=True)
+    cluster_size, partition_id, host_capabilities = get_cluster_info(sync_lock)
     if cluster_size == 0:
         return
     # print(f"strat time 1: {(time.perf_counter_ns() - start_t) / 100000}")
     print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")
     # print(f"hashes: {[(x.id, hash(x), hash(x) % cluster_size) for x in repl_strategies.rawData()]}")
 #    owned_strategies = [x for x in repl_strategies.rawData() if hash(x) % cluster_size == partition_id]
-    owned_strategies = filter(lambda x: hash(x) % cluster_size == partition_id, repl_strategies.rawData())
+    capable_strategies = [x for x in repl_strategies.rawData() if can_execute_strategy(host_capabilities, x)]
+    print(f"capable_strategies: {capable_strategies}")
+    owned_strategies = [x for x in capable_strategies if hash(x) % cluster_size == partition_id]
     print(f"owned strategies: {[x.id for x in owned_strategies]}")
+    # print(f"owned strategies: {owned_strategies}")
     # print(f"strat time 2: {(time.perf_counter_ns() - start_t) / 100000}")
     sym_map = dict()
     for s in owned_strategies:
+        # if not can_execute_strategy(host_capabilities, s):
+        #     print(f"skipping unsupported strategy: {s.id} {s.capabilities}")
+        #     continue
         for symbol in s.symbols:
             x = sym_map.get(symbol)
             if x is None:
@@ -129,12 +154,33 @@ repl_ts = ReplTimeseries(on_append=process_ts_updates)
 
 repl_strategies = ReplList()
 
-selfAddr = sys.argv[1]  # "localhost:10000"
-partners = sys.argv[2:]  # ["localhost:10001", "localhost:10002"]
+gpu_capabilities = sys.argv[1]
+selfAddr = sys.argv[2]  # "localhost:10000"
+my_port = int(selfAddr.split(":")[1])
+partners = sys.argv[3:]  # ["localhost:10001", "localhost:10002"]
 sync_lock = SyncObj(selfAddr, partners, consumers=[kvstore, repl_ts, repl_strategies, repl_hosts])
 
-while not repl_hosts.tryAcquire(sync_lock.selfNode.id, sync=True):
-    pass
+strategy_capabilities = ['CPU', 'GPU']
+
+
+class DoLocaleCapabilities:
+    def get_memory_stats(self):
+        vm = psutil.virtual_memory()
+        return {'total': vm.total, 'available': vm.available}
+
+    def apply(self):
+        return {
+            'cpu_count': multiprocessing.cpu_count(),
+            'virtual_memory': self.get_memory_stats(),
+            'gpu_info': [gpu_capabilities]
+        }
+
+dlc = DoLocaleCapabilities()
+
+capabilities = dlc.apply()
+while not repl_hosts.tryAcquire(sync_lock.selfNode.id, data=capabilities, sync=True):
+    time.sleep(0.1)
+
 
 class DoRegister:
     def apply(self, name, src):
@@ -177,16 +223,6 @@ class DoRegistry:
 
 dreg = DoRegistry()
 
-
-class DoLocaleCapabilities:
-    def apply(self):
-        return {
-            'cpu_count': multiprocessing.cpu_count(),
-            'virtual_memory': psutil.virtual_memory(),
-            'GPUs': []
-        }
-
-
 class DoKvStore():
     def set(self, k, v):
         global kvstore
@@ -203,8 +239,6 @@ dkvs = DoKvStore()
 
 dotask = DoTask(kvstore)
 
-dlc = DoLocaleCapabilities()
-
 print(dlc.apply())
 
 QueueManager.register('do_register', callable=lambda: dr)
@@ -213,18 +247,18 @@ QueueManager.register('get_registry', callable=lambda: dreg)
 QueueManager.register('kvstore', callable=lambda: kvstore)
 QueueManager.register('tasks', callable=lambda: dotask)
 QueueManager.register('ts', callable=lambda: repl_ts)
-QueueManager.register('locale_capabilities', callable=lambda: dlc)
+QueueManager.register('locale_capabilities', callable=lambda: capabilities)
 QueueManager.register('strategies', callable=lambda: repl_strategies)
 
 print(f"booting: ")
 print(f"status: {sync_lock.getStatus()}")
 print(f"self: {sync_lock.selfNode}")
 print(f"others: {sync_lock.otherNodes}")
-cluster_size, my_partition = get_cluster_info()
-print(f"my_partition={my_partition}")
+# cluster_size, my_partition = get_cluster_info(sync_lock)
+# print(f"my_partition={my_partition}")
 
 # Start up
-mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
+mgr_port = (my_port % 1000) + 50000
 print(f"manager port: {mgr_port}")
 
 
@@ -283,7 +317,8 @@ def make_app(kvstore):
 m, mt = serve_forever(mgr_port, b'password')
 
 webserver = tornado.httpserver.HTTPServer(make_app(kvstore))
-port = 11000 + my_partition
+# port = 11000 + my_partition
+port = 1000 + int(sync_lock.selfNode.id.split(":")[1])
 print(f"my port: {port}")
 webserver.listen(port)
 # webserver.start(2)

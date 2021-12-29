@@ -16,3 +16,8 @@ class Strategy:
     def __hash__(self):
         return hash(int(self.id))
 
+    def __str__(self):
+        return str(vars(self))
+
+    def __repr__(self):
+        return self.__str__()

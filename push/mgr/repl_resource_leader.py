@@ -1,12 +1,12 @@
 from __future__ import print_function
 
+import os
+import socket
 import threading
 import time
 import weakref
-import socket
-import os
 
-from pysyncobj import replicated, SyncObjConsumer, SyncObj
+from pysyncobj import replicated, SyncObjConsumer
 
 
 class _ReplHostManagerImpl(SyncObjConsumer):
@@ -16,7 +16,7 @@ class _ReplHostManagerImpl(SyncObjConsumer):
         self.__autoUnlockTime = autoUnlockTime
 
     @replicated
-    def acquire(self, lockID, clientID, currentTime):
+    def acquire(self, lockID, clientID, currentTime, data=None):
         existingLock = self.__locks.get(lockID, None)
         # Auto-unlock old lock
         if existingLock is not None:
@@ -24,7 +24,7 @@ class _ReplHostManagerImpl(SyncObjConsumer):
                 existingLock = None
         # Acquire lock if possible
         if existingLock is None or existingLock[0] == clientID:
-            self.__locks[lockID] = (clientID, currentTime)
+            self.__locks[lockID] = (clientID, currentTime, data)
             return True
         # Lock already acquired by someone else
         return False
@@ -32,14 +32,14 @@ class _ReplHostManagerImpl(SyncObjConsumer):
     @replicated
     def prolongate(self, clientID, currentTime):
         for lockID in list(self.__locks):
-            lockClientID, lockTime = self.__locks[lockID]
+            lockClientID, lockTime, lockData = self.__locks[lockID]
 
             if currentTime - lockTime > self.__autoUnlockTime:
                 del self.__locks[lockID]
                 continue
 
             if lockClientID == clientID:
-                self.__locks[lockID] = (clientID, currentTime)
+                self.__locks[lockID] = (lockClientID, currentTime, lockData)
 
     @replicated
     def release(self, lockID, clientID):
@@ -55,15 +55,19 @@ class _ReplHostManagerImpl(SyncObjConsumer):
                     return True
         return False
 
-    def isOwned(self, lockID, clientID, currentTime):
+    def isOwned(self, lockID, currentTime):
         existingLock = self.__locks.get(lockID, None)
         if existingLock is not None:
             if currentTime - existingLock[1] < self.__autoUnlockTime:
                 return True
         return False
 
-    def rawData(self):
-        return self.__locks.copy()
+    def lockData(self, lockID=None):
+        if lockID is None:
+            return {k: self.__locks[k][2] for k in self.__locks.keys()}
+        existingLock = self.__locks.get(lockID)
+        if existingLock is not None:
+            return {lockID: existingLock}
 
 
 class ReplHostManager(object):
@@ -118,7 +122,7 @@ class ReplHostManager(object):
         except ReferenceError:
             pass
 
-    def tryAcquire(self, lockID, callback=None, sync=False, timeout=None):
+    def tryAcquire(self, lockID, data=None, callback=None, sync=False, timeout=None):
         """Attempt to acquire lock.
 
         :param lockID: unique lock identifier.
@@ -133,7 +137,7 @@ class ReplHostManager(object):
         """
         attemptTime = time.time()
         if sync:
-            acquireRes = self.__lockImpl.acquire(lockID, self.__selfID, attemptTime, callback=callback, sync=sync, timeout=timeout)
+            acquireRes = self.__lockImpl.acquire(lockID, self.__selfID, attemptTime, data=data, callback=callback, sync=sync, timeout=timeout)
             acquireTime = time.time()
             if acquireRes:
                 if acquireTime - attemptTime > self.__autoUnlockTime / 2.0:
@@ -161,10 +165,10 @@ class ReplHostManager(object):
         return self.__lockImpl.isAcquired(lockID, self.__selfID, time.time())
 
     def isOwned(self, lockID):
-        return self.__lockImpl.isOwned(lockID, self.__selfID, time.time())
+        return self.__lockImpl.isOwned(lockID, time.time())
 
-    def rawData(self):
-        return self.__lockImpl.rawData()
+    def lockData(self, lockID=None):
+        return self.__lockImpl.lockData(lockID=lockID)
 
     def release(self, lockID, callback=None, sync=False, timeout=None):
         """
