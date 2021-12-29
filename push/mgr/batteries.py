@@ -16,8 +16,8 @@ from pysyncobj.batteries import ReplDict
 class ReplSyncDict(ReplDict):
 
     def __init__(self, on_set=None):
-        super(ReplSyncDict, self).__init__()
         self.on_set = on_set
+        super(ReplSyncDict, self).__init__()
 
     @replicated_sync
     def set_sync(self, key, value):
@@ -32,10 +32,10 @@ class ReplSyncDict(ReplDict):
 
 class ReplTimeseries(SyncObjConsumer):
     def __init__(self, on_append=None):
+        self.__on_append = on_append
         super(ReplTimeseries, self).__init__()
         self.__data = dict()
         self.__index_data = list()
-        self.__on_append = on_append
 
     @replicated
     def reset(self):

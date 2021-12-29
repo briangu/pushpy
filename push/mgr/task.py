@@ -14,7 +14,7 @@ class TaskContext:
         self.thread = thread
 
 
-class DoTask:
+class TaskManager:
     task_threads = dict()
 
     def __init__(self, kvstore):

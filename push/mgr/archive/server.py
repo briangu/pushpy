@@ -1,5 +1,4 @@
 import multiprocessing
-import queue as Queue
 import threading
 import time
 import uuid
@@ -9,7 +8,6 @@ import dill
 from pysyncobj import SyncObj, replicated, replicated_sync
 from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict, ReplQueue
 
-from push.examples.d.lock import Lock
 from push.mgr.qm import QueueManager
 import psutil
 import sys
@@ -19,6 +17,7 @@ import os
 
 # from tensorflow.python.client import device_lib
 
+print(f"starting demo server")
 
 # TODO: GPU enabled systems can have a GPU client attach and listen to a queue to do work
 #       we can report if there's a client registered or not

@@ -167,3 +167,17 @@ class HostResources(Resource):
             memory=MemoryResources.create(),
             gpu=GPUResources.create()
         )
+
+
+def get_cluster_info(hosts, so):
+    all_nodes = [so.selfNode, *so.otherNodes]
+    all_host_resources = hosts.lockData()
+    if so.selfNode.id not in all_host_resources:
+        return 0, 0, {}
+    hr = all_host_resources[so.selfNode.id]
+    all_nodes = [x for x in all_nodes if hosts.isOwned(x.id)]
+    if so.selfNode not in all_nodes:
+        return 0, 0, {}
+    all_nodes = sorted(all_nodes, key=lambda x: x.id)
+    all_nodes = [x for x in all_nodes if hr.is_compatible(all_host_resources[x.id])]
+    return len(all_nodes), all_nodes.index(so.selfNode), hr

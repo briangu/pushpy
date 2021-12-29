@@ -1,5 +1,3 @@
-import random
-
 import dill
 
 from push.mgr.qm import QueueManager

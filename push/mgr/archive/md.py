@@ -1,5 +1,4 @@
 import dill
-import time
 
 from push.mgr.qm import QueueManager
 import sys

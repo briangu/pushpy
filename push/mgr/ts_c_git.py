@@ -1,6 +1,3 @@
-import random
-import time
-
 import dill
 
 from push.mgr.qm import QueueManager
@@ -19,7 +16,7 @@ class DataGeneratorTask:
         print("daemon here! 1")
 
         import datetime
-        from datetime import timezone, timedelta
+        from datetime import timezone
         import random
         import time
 

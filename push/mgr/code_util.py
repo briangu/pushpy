@@ -1,7 +1,5 @@
 import dill
 
-# from push.mgr.server import kvstore
-
 
 def load_src(kvstore, src):
     if isinstance(src, str):
@@ -19,3 +17,16 @@ def load_src(kvstore, src):
         src = src()
         src = src.apply if hasattr(src, 'apply') else src
     return src
+
+
+class KvStoreLambda:
+    key: str
+
+    def __init__(self, kvstore, key):
+        self.kvstore = kvstore
+        self.key = f"kvstore:{key}"
+
+    def apply(self, *args, **kwargs):
+        src = load_src(self.kvstore, self.key)
+        if src is not None:
+            src(*args, **kwargs)

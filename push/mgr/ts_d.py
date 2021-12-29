@@ -1,4 +1,3 @@
-import random
 import time
 
 import dill
@@ -19,7 +18,7 @@ class DataGeneratorTask:
         print("daemon here! 1")
 
         import datetime
-        from datetime import timezone, timedelta
+        from datetime import timezone
         import random
         import time
 
