@@ -60,7 +60,7 @@ def make_app(kvstore):
 # dr = DoRegister()
 
 
-def create_subconsumers(base_port) -> (typing.List[object], typing.Dict[str, object]):
+def boot() -> (typing.List[object], typing.Dict[str, object]):
     repl_kvstore = ReplSyncDict(on_set=None)
     repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_kvstore, "process_ts_updates").apply)
     repl_strategies = ReplList()
@@ -89,3 +89,5 @@ def create_subconsumers(base_port) -> (typing.List[object], typing.Dict[str, obj
 
     # return [repl_ts, repl_kvstore, repl_strategies], m_globals, m_methods
     return m_globals, make_app(repl_kvstore)
+
+

@@ -6,16 +6,17 @@ import tornado.httpserver
 import tornado.web
 from pysyncobj import SyncObj, SyncObjConsumer
 
+from push.loader import load_in_memory_module
 from push.mgr.batteries import ReplLockDataManager
-from push.mgr.host_resources import HostResources, GPUResources, get_cluster_info
+from push.mgr.host_resources import HostResources, GPUResources
 from push.mgr.push_manager import PushManager
 from push.mgr.push_util import serve_forever
-from push.mgr.ts_boot import create_subconsumers
 
-gpu_capabilities = sys.argv[1]
-selfAddr = sys.argv[2]
+boot_module_src = sys.argv[1]
+gpu_capabilities = sys.argv[2]
+selfAddr = sys.argv[3]
 base_port = int(selfAddr.split(":")[1])
-partners = sys.argv[3:]
+partners = sys.argv[4:]
 
 # fake GPU for testing
 host_resources = HostResources.create()
@@ -32,7 +33,9 @@ PushManager.register('host_resources', callable=lambda: host_resources)
 
 # >>> setup sync obj
 repl_hosts = ReplLockDataManager(autoUnlockTime=5)
-m_globals, web_app = create_subconsumers(base_port)
+# TODO: if specified load boot module and execute command
+boot_mod = load_in_memory_module(boot_module_src)
+m_globals, web_app = boot_mod.boot()
 boot_consumers = [x for x in m_globals.values() if isinstance(x, SyncObjConsumer)]
 flat_consumers = [repl_hosts, *boot_consumers]
 sync_obj = SyncObj(selfAddr, partners, consumers=flat_consumers)
@@ -42,6 +45,7 @@ PushManager.register('sync_obj', callable=lambda: sync_obj)
 for k, v in m_globals.items():
     globals()[k] = v
     if k.startswith("repl_"):
+        # https://stackoverflow.com/questions/2295290/what-do-lambda-function-closures-capture
         PushManager.register(k, callable=lambda q=k: globals()[q])
 
 print(f"registering host: {sync_obj.selfNode.id}")

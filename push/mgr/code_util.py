@@ -3,16 +3,18 @@ import dill
 
 def load_src(kvstore, src):
     if isinstance(src, str):
-        # print(f"load_src: {src}")
-        p = src.split(":")
-        src = kvstore.get(p[1])
-        if src is None:
+        if src.startswith("kvstore:"):
+            p = src.split(":")
+            src = kvstore.get(p[1])
+            if src is None:
+                return None
+            src = dill.loads(src)
+        else:
+            # TODO: what do we with do a URI src?
+            # src = compile_source(src)
             return None
-        src = dill.loads(src)
     else:
-        # print(f"load_src: code")
         src = dill.loads(src)
-    # print(f"load_src: {type(src)}")
     if isinstance(src, type):
         src = src()
         src = src.apply if hasattr(src, 'apply') else src
@@ -30,3 +32,10 @@ class KvStoreLambda:
         src = load_src(self.kvstore, self.key)
         if src is not None:
             src(*args, **kwargs)
+
+
+# https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
+# import importlib
+# mod = imp.new_module('ciao')
+# sys.modules['ciao'] = mod
+# exec(s, mod.__dict__)

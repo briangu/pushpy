@@ -137,3 +137,15 @@ def load_and_run(tmp_path, m, log, *args, **kwargs):
         log.error(f"missing main function in module: {m}")
         raise RuntimeError(f"missing main function in module: {m}")
     context['main'](*args, **kwargs)
+
+
+def load_in_memory_module(src, name=None):
+    # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
+    import types
+    name = name or str(uuid.uuid4())
+    mod = types.ModuleType(name)
+    sys.modules[name] = mod
+    s = compile_source(src)
+    exec(s, mod.__dict__)
+    return mod
+
