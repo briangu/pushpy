@@ -8,6 +8,7 @@ from pysyncobj.batteries import ReplList
 
 from push.mgr.batteries import ReplSyncDict, ReplTimeseries
 from push.mgr.code_util import KvStoreLambda, load_src
+from push.mgr.host_resources import get_cluster_info
 from push.mgr.task import TaskManager
 
 
@@ -67,6 +68,7 @@ def create_subconsumers(base_port) -> (typing.List[object], typing.Dict[str, obj
     tm = TaskManager(repl_kvstore)
 
     m_globals = dict()
+    m_globals['get_cluster_info'] = get_cluster_info
     m_globals['repl_kvstore'] = repl_kvstore
     m_globals['repl_tasks'] = tm
     m_globals['repl_ts'] = repl_ts

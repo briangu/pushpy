@@ -39,11 +39,10 @@ sync_obj = SyncObj(selfAddr, partners, consumers=flat_consumers)
 
 PushManager.register('sync_obj', callable=lambda: sync_obj)
 
-globals()['get_cluster_info'] = get_cluster_info
-
 for k, v in m_globals.items():
     globals()[k] = v
-    PushManager.register(k, callable=lambda q=k: globals()[q])
+    if k.startswith("repl_"):
+        PushManager.register(k, callable=lambda q=k: globals()[q])
 
 print(f"registering host: {sync_obj.selfNode.id}")
 while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=True):
