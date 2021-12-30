@@ -30,12 +30,12 @@ class DataGeneratorTask:
             time.sleep(1)
 
 
-ts = m.ts().reset()
+ts = m.repl_ts().reset()
 
-kvstore = m.kvstore()
+kvstore = m.repl_kvstore()
 kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
 
-dt = m.tasks()
+dt = m.repl_tasks()
 dt.stop("mdt")
 dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
 

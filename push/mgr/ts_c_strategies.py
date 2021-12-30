@@ -36,7 +36,7 @@ def process_ts_updates(idx_data, keys, data):
         # if strategies is not None:
         #     print(f"applying strategies: {[x.id for x in strategies]}")
 
-kvstore = m.kvstore()
+kvstore = m.repl_kvstore()
 kvstore.set_sync("process_ts_updates", dill.dumps(process_ts_updates))
 
 def random_host_requirement():
@@ -49,6 +49,6 @@ def random_host_requirement():
 
 strategies = [Strategy(id=i, name=f"s_{i}", symbols=np.random.choice(symbols, 2), requirements=random_host_requirement()) for i in range(10)]
 
-repl_strategies = m.strategies()
+repl_strategies = m.repl_strategies()
 repl_strategies.reset(strategies)
 

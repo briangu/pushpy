@@ -12,32 +12,27 @@ from push.mgr.code_util import KvStoreLambda, load_src
 from push.mgr.task import TaskManager
 
 
-def create_webserver(base_port, repl_kvstore):
-    class MainHandler(tornado.web.RequestHandler):
+# def create_webserver(base_port, repl_kvstore):
+class MainHandler(tornado.web.RequestHandler):
+    kvstore = None
 
-        kvstore = None
+    def initialize(self, kvstore):
+        self.kvstore = kvstore
 
-        def initialize(self, kvstore):
-            self.kvstore = kvstore
+    @tornado.gen.coroutine
+    def get(self):
+        on_get_v = self.kvstore.get("on_get_v")
+        if on_get_v is not None:
+            kv_on_get = self.kvstore.get(f"on_get_v{on_get_v}")
+            if kv_on_get is not None:
+                kv_on_get = load_src(self.kvstore, kv_on_get)
+                kv_on_get(self)
 
-        @tornado.gen.coroutine
-        def get(self):
-            on_get_v = self.kvstore.get("on_get_v")
-            if on_get_v is not None:
-                kv_on_get = self.kvstore.get(f"on_get_v{on_get_v}")
-                if kv_on_get is not None:
-                    kv_on_get = load_src(self.kvstore, kv_on_get)
-                    kv_on_get(self)
 
-    def make_app(kvstore):
-        return tornado.web.Application([
-            ("/", MainHandler, {'kvstore': kvstore})
-        ])
-
-    webserver = tornado.httpserver.HTTPServer(make_app(repl_kvstore))
-    web_port = (base_port % 1000) + 11000
-    print(f"my web port: {web_port}")
-    webserver.listen(web_port)
+def make_app(kvstore):
+    return tornado.web.Application([
+        ("/", MainHandler, {'kvstore': kvstore})
+    ])
 
 
 # class DoRegisterCallback:
@@ -72,24 +67,24 @@ def create_subconsumers(base_port) -> (typing.List[object], typing.Dict[str, obj
 
     tm = TaskManager(repl_kvstore)
 
-    qm_globals = dict()
-    qm_globals['repl_kvstore'] = repl_kvstore
-    qm_globals['repl_tasks'] = tm
-    qm_globals['repl_ts'] = repl_ts
-    qm_globals['repl_strategies'] = repl_strategies
+    m_globals = dict()
+    m_globals['repl_kvstore'] = repl_kvstore
+    m_globals['repl_tasks'] = tm
+    m_globals['repl_ts'] = repl_ts
+    m_globals['repl_strategies'] = repl_strategies
 
-    qm_methods = dict()
-    qm_methods['kvstore'] = lambda: repl_kvstore
-    qm_methods['tasks'] = lambda: tm
-    qm_methods['ts'] = lambda: repl_ts
-    qm_methods['strategies'] = lambda: repl_strategies
+    # m_methods = dict()
+    # m_methods['kvstore'] = lambda: repl_kvstore
+    # m_methods['tasks'] = lambda: tm
+    # m_methods['ts'] = lambda: repl_ts
+    # m_methods['strategies'] = lambda: repl_strategies
 
     # QueueManager.register('kvstore', callable=lambda: repl_kvstore)
     # QueueManager.register('tasks', callable=lambda: tm)
     # QueueManager.register('ts', callable=lambda: repl_ts)
     # QueueManager.register('strategies', callable=lambda: repl_strategies)
 
-    create_webserver(base_port, repl_kvstore)
+    # create_webserver(base_port, repl_kvstore)
 
-    return [repl_ts, repl_kvstore, repl_strategies], qm_globals, qm_methods
-
+    # return [repl_ts, repl_kvstore, repl_strategies], m_globals, m_methods
+    return m_globals, make_app(repl_kvstore)

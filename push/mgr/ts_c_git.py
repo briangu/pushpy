@@ -36,7 +36,7 @@ def mk_on_get_c(v):
     return on_get
 
 
-kvstore = m.kvstore()
+kvstore = m.repl_kvstore()
 kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
 
 on_get_v = kvstore.get("on_get_v")

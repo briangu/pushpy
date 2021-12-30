@@ -63,9 +63,9 @@ class ReplTimeseries(SyncObjConsumer):
         return df
 
 
-class _ReplHostManagerImpl(SyncObjConsumer):
+class _ReplLockDataManagerImpl(SyncObjConsumer):
     def __init__(self, autoUnlockTime):
-        super(_ReplHostManagerImpl, self).__init__()
+        super(_ReplLockDataManagerImpl, self).__init__()
         self.__locks = {}
         self.__autoUnlockTime = autoUnlockTime
 
@@ -124,7 +124,7 @@ class _ReplHostManagerImpl(SyncObjConsumer):
             return {lockID: existingLock}
 
 
-class ReplHostManager(object):
+class ReplLockDataManager(object):
 
     def __init__(self, autoUnlockTime, selfID = None):
         """Replicated Lock Manager. Allow to acquire / release distributed locks.
@@ -135,7 +135,7 @@ class ReplHostManager(object):
         :param selfID: (optional) - unique id of current lock holder.
         :type selfID: str
         """
-        self.__lockImpl = _ReplHostManagerImpl(autoUnlockTime)
+        self.__lockImpl = _ReplLockDataManagerImpl(autoUnlockTime)
         if selfID is None:
             selfID = '%s:%d:%d' % (socket.gethostname(), os.getpid(), id(self))
         self.__selfID = selfID
@@ -144,7 +144,7 @@ class ReplHostManager(object):
         self.__initialised = threading.Event()
         self.__destroying = False
         self.__lastProlongateTime = 0
-        self.__thread = threading.Thread(target=ReplHostManager._autoAcquireThread, args=(weakref.proxy(self),))
+        self.__thread = threading.Thread(target=ReplLockDataManager._autoAcquireThread, args=(weakref.proxy(self),))
         self.__thread.start()
         while not self.__initialised.is_set():
             pass
