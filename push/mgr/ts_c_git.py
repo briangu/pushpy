@@ -39,6 +39,7 @@ def mk_on_get_c(v):
 kvstore = m.repl_kvstore()
 kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
 
+# TODO: do git-like tree and move HEAD to latest
 on_get_v = kvstore.get("on_get_v")
 if on_get_v is None:
     on_get_v = 0

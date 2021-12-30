@@ -28,6 +28,9 @@ class KvStoreLambda:
         self.kvstore = kvstore
         self.key = f"kvstore:{key}"
 
+    def __call__(self, *args, **kwargs):
+        self.apply(*args, **kwargs)
+
     def apply(self, *args, **kwargs):
         src = load_src(self.kvstore, self.key)
         if src is not None:

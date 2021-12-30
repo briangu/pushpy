@@ -8,7 +8,7 @@ from pysyncobj import SyncObj, SyncObjConsumer
 
 from push.loader import load_in_memory_module
 from push.mgr.batteries import ReplLockDataManager
-from push.mgr.host_resources import HostResources, GPUResources
+from push.mgr.host_resources import HostResources, GPUResources, get_cluster_info
 from push.mgr.push_manager import PushManager
 from push.mgr.push_util import serve_forever
 
@@ -33,18 +33,18 @@ PushManager.register('host_resources', callable=lambda: host_resources)
 
 # >>> setup sync obj
 repl_hosts = ReplLockDataManager(autoUnlockTime=5)
-# TODO: if specified load boot module and execute command
 boot_mod = load_in_memory_module(boot_module_src)
-m_globals, web_app = boot_mod.boot()
+m_globals, web_app = boot_mod.main()
 boot_consumers = [x for x in m_globals.values() if isinstance(x, SyncObjConsumer)]
-flat_consumers = [repl_hosts, *boot_consumers]
-sync_obj = SyncObj(selfAddr, partners, consumers=flat_consumers)
+sync_obj = SyncObj(selfAddr, partners, consumers=[repl_hosts, *boot_consumers])
 
 PushManager.register('sync_obj', callable=lambda: sync_obj)
 
+globals()['get_cluster_info'] = get_cluster_info
+
 for k, v in m_globals.items():
     globals()[k] = v
-    if k.startswith("repl_"):
+    if k.startswith("repl_") or k.startswith("local_"):
         # https://stackoverflow.com/questions/2295290/what-do-lambda-function-closures-capture
         PushManager.register(k, callable=lambda q=k: globals()[q])
 
