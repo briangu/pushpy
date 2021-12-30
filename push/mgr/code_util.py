@@ -1,6 +1,7 @@
 import dill
 
 
+# add support for kvstore module - call main?
 def load_src(kvstore, src):
     if isinstance(src, str):
         if src.startswith("kvstore:"):

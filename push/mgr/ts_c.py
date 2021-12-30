@@ -18,12 +18,12 @@ class BatchProcess:
         return flat_ts
 
 
-ts = m.ts()
-dt = m.tasks()
+ts = m.repl_ts()
+dt = m.local_tasks()
 r = dt.apply(dill.dumps(BatchProcess))
 print(r)
 
-print(m.ts().flatten())
+print(m.repl_ts().flatten())
 
 r = dt.apply(src=dill.dumps(lambda *args, **kwargs: repl_ts.flatten()))
 print(r)

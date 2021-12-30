@@ -6,7 +6,7 @@ import tornado.ioloop
 import tornado.web
 from pysyncobj.batteries import ReplList
 
-from push.mgr.batteries import ReplSyncDict, ReplTimeseries
+from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore
 from push.mgr.code_util import KvStoreLambda, load_src
 from push.mgr.push_manager import PushManager
 from push.mgr.task import TaskManager
@@ -65,6 +65,7 @@ def make_app(kvstore):
 
 def main() -> (typing.List[object], typing.Dict[str, object]):
     repl_kvstore = ReplSyncDict(on_set=None)
+    repl_code_store = ReplCodeStore(on_set=None)
     repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_kvstore, "process_ts_updates"))
     repl_strategies = ReplList()
 
@@ -72,6 +73,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
 
     m_globals = dict()
     m_globals['repl_kvstore'] = repl_kvstore
+    m_globals['repl_code_store'] = repl_code_store
     m_globals['local_tasks'] = tm
     m_globals['repl_ts'] = repl_ts
     m_globals['repl_strategies'] = repl_strategies

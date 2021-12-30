@@ -12,6 +12,8 @@ from pysyncobj import replicated, SyncObjConsumer
 from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
 
+from push.mgr.code_util import load_src
+
 
 class ReplSyncDict(ReplDict):
 
@@ -28,6 +30,39 @@ class ReplSyncDict(ReplDict):
         super().set(key, value, _doApply=True)
         if self.on_set is not None:
             self.on_set(key, value)
+
+
+# TODO: add HEAD / tree and hash->blob support
+class ReplCodeStore(ReplDict):
+
+    def __init__(self, on_set=None):
+        self.on_set = on_set
+        super(ReplCodeStore, self).__init__()
+
+    @replicated_sync
+    def set_sync(self, key, value):
+        self.set(key, value, _doApply=True)
+
+    @replicated
+    def set(self, key, value):
+        super().set(key, value, _doApply=True)
+        if self.on_set is not None:
+            self.on_set(key, value)
+
+    @replicated_sync
+    def apply_sync(self, key, *args, **kwargs):
+        return self.apply(key, *args, **kwargs, _doApply=True)
+
+    @replicated
+    def apply(self, key, *args, **kwargs):
+        key = key if key.startswith("kvstore:") else f"kvstore:{key}"
+        src = load_src(self, key)
+        if src is not None:
+            print(f"{key}({[*args]}")
+            r = src(*args, **kwargs)
+            print(r)
+            return r
+        return None
 
 
 class ReplTimeseries(SyncObjConsumer):
