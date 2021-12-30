@@ -1,9 +1,9 @@
 import dill
 
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 import sys
 
-m = QueueManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
 
 # while jq.qsize() > 0:

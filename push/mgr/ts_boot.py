@@ -8,7 +8,6 @@ from pysyncobj.batteries import ReplList
 
 from push.mgr.batteries import ReplSyncDict, ReplTimeseries
 from push.mgr.code_util import KvStoreLambda, load_src
-# from push.mgr.qm import QueueManager
 from push.mgr.task import TaskManager
 
 

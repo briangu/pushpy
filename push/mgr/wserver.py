@@ -1,13 +1,13 @@
 import multiprocessing
 
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 import asyncio
 import tornado.web
 import tornado.ioloop
 import tornado.httpserver
 import tornado.gen
 
-m = QueueManager(address=('', 50000), authkey=b'password')
+m = PushManager(address=('', 50000), authkey=b'password')
 m.connect()
 
 sync_lock = m.sync_obj()

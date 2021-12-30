@@ -4,10 +4,10 @@ import dill
 import numpy as np
 
 from push.mgr.host_resources import HostRequirements, GPURequirements
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 from push.mgr.strategy import Strategy
 
-m = QueueManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
 
 symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']

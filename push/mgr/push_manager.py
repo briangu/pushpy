@@ -1,7 +1,7 @@
 from multiprocessing.managers import BaseManager
 
 
-class QueueManager(BaseManager):
+class PushManager(BaseManager):
     def connect(self) -> None:
         super().connect()
         self.register('get_registry')

@@ -8,7 +8,7 @@ import dill
 from pysyncobj import SyncObj, replicated, replicated_sync
 from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict, ReplQueue
 
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 import psutil
 import sys
 import socket
@@ -244,7 +244,7 @@ class DoRegister:
     def apply(self, name, src):
         src = dill.loads(src)
         q = src()
-        QueueManager.register(name, callable=lambda: q)
+        PushManager.register(name, callable=lambda: q)
 
 
 dr = DoRegister()
@@ -262,7 +262,7 @@ class DoRegisterCallback:
 
 
 drc = DoRegisterCallback()
-QueueManager.register("do_register_callback", callable=lambda: drc)
+PushManager.register("do_register_callback", callable=lambda: drc)
 
 
 def load_src(src):
@@ -294,7 +294,7 @@ dl = DoLambda()
 
 class DoRegistry:
     def apply(self):
-        return list(QueueManager._registry.keys())
+        return list(PushManager._registry.keys())
 
 
 dreg = DoRegistry()
@@ -359,22 +359,22 @@ dotask = DoTask()
 
 dlc = DoLocaleCapabilities()
 
-QueueManager.register('get_job_queue', callable=lambda: job_queue)
-QueueManager.register('get_result_queue', callable=lambda: result_queue)
-QueueManager.register('do_add', callable=lambda: da)
+PushManager.register('get_job_queue', callable=lambda: job_queue)
+PushManager.register('get_result_queue', callable=lambda: result_queue)
+PushManager.register('do_add', callable=lambda: da)
 
-QueueManager.register('do_register', callable=lambda: dr)
-QueueManager.register('apply_lambda', callable=lambda: dl)
-QueueManager.register('get_registry', callable=lambda: dreg)
-QueueManager.register('sync_obj', callable=lambda: lock_mgr)
-QueueManager.register('kvstore', callable=lambda: kvstore)
-QueueManager.register('tasks', callable=lambda: dotask)
-QueueManager.register('locale_capabilities', callable=lambda: dlc)
+PushManager.register('do_register', callable=lambda: dr)
+PushManager.register('apply_lambda', callable=lambda: dl)
+PushManager.register('get_registry', callable=lambda: dreg)
+PushManager.register('sync_obj', callable=lambda: lock_mgr)
+PushManager.register('kvstore', callable=lambda: kvstore)
+PushManager.register('tasks', callable=lambda: dotask)
+PushManager.register('locale_capabilities', callable=lambda: dlc)
 
 # Start up
 mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
 print(mgr_port)
-m = QueueManager(address=('', mgr_port), authkey=b'password')
+m = PushManager(address=('', mgr_port), authkey=b'password')
 s = m.get_server()
 # TODO: i think this code can be rewritten to use asyncio / twisted
 s.serve_forever()

@@ -1,12 +1,12 @@
 import threading
 
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 
-QueueManager.register('get_job_queue')
-QueueManager.register('get_result_queue')
+PushManager.register('get_job_queue')
+PushManager.register('get_result_queue')
 
 # Connect to server
-m = QueueManager(address=('', 50000), authkey=b'password')
+m = PushManager(address=('', 50000), authkey=b'password')
 m.connect()
 
 # Set up queus

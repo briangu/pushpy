@@ -1,9 +1,9 @@
 import dill
 import time
 
-from push.mgr.qm import QueueManager
+from push.mgr.push_manager import PushManager
 
-m = QueueManager(address=('', 50000), authkey=b'password')
+m = PushManager(address=('', 50000), authkey=b'password')
 m.connect()
 
 print(f"locale capabilities: {m.locale_capabilities().apply()}")
@@ -24,7 +24,7 @@ x = dill.dumps(Do_woot)
 
 dr.apply('do_test', x)
 
-QueueManager.register('do_test')
+PushManager.register('do_test')
 
 dt = m.do_test()
 
@@ -37,7 +37,7 @@ print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: '
 # print(f"raw lambda result={str(dl.apply(src=dill.dumps(lambda *args, **kwargs: str(job_queue))))}")
 
 
-print(list(QueueManager._registry.keys()))
+print(list(PushManager._registry.keys()))
 
 sync_obj = m.sync_obj()
 print(sync_obj.tryAcquire("/dog", sync=True))
