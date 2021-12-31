@@ -1,4 +1,5 @@
 import sys
+import time
 
 import dill
 import numpy as np
@@ -36,8 +37,10 @@ def process_ts_updates(idx_data, keys, data):
         # if strategies is not None:
         #     print(f"applying strategies: {[x.id for x in strategies]}")
 
+
 repl_code_store = m.repl_code_store()
 repl_code_store.add("process_ts_updates", dill.dumps(process_ts_updates))
+
 
 def random_host_requirement():
     return HostRequirements(
@@ -52,3 +55,37 @@ strategies = [Strategy(id=i, name=f"s_{i}", symbols=np.random.choice(symbols, 2)
 repl_strategies = m.repl_strategies()
 repl_strategies.reset(strategies)
 
+
+class DataGeneratorTask:
+    def __init__(self, _ts=None):
+        global repl_ts
+        self.ts = _ts or repl_ts
+
+    def apply(self, control):
+        print("daemon here! 1")
+
+        import datetime
+        from datetime import timezone
+        import random
+        import time
+
+        while control.running:
+            symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']
+            now = datetime.datetime.now(timezone.utc)
+            d = [random.uniform(10, 100) for _ in symbols]
+            self.ts.append(now, symbols, d)
+            time.sleep(1)
+
+
+ts = m.repl_ts().reset()
+
+kvstore = m.repl_kvstore()
+kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
+
+dt = m.local_tasks()
+dt.stop("mdt")
+dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
+
+time.sleep(300)
+
+dt.stop("mdt")

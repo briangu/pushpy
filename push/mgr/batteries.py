@@ -137,6 +137,9 @@ class ReplSyncDict(ReplDict):
 #       obj.commit()
 #       v = obj.get("/a")
 #       v() expect ==> 3
+# TODO: add enumerate all keys /w lambda
+#       flush to disk directory?
+#       load from disk directory?
 class ReplCodeStore(SyncObjConsumer):
 
     def __init__(self):
@@ -254,7 +257,7 @@ class ReplCodeStore(SyncObjConsumer):
     @replicated
     def apply(self, key, *args, **kwargs):
         key = key if key.startswith("kvstore:") else f"kvstore:{key}"
-        src = load_src(self, key)
+        src = load_lamdba(self, key)
         if src is not None:
             ctx = {'src': src, 'args': args, 'kwargs': kwargs}
             # TOOD: support lambda requirements

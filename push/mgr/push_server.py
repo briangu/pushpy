@@ -34,7 +34,7 @@ PushManager.register('host_resources', callable=lambda: host_resources)
 # >>> setup sync obj
 repl_hosts = ReplLockDataManager(autoUnlockTime=5)
 boot_mod = load_in_memory_module(boot_module_src)
-m_globals, web_app = boot_mod.main()
+m_globals, web_router = boot_mod.main()
 boot_consumers = [x for x in m_globals.values() if isinstance(x, SyncObjConsumer)]
 sync_obj = SyncObj(selfAddr, partners, consumers=[repl_hosts, *boot_consumers])
 
@@ -56,8 +56,8 @@ while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=
 
 # <<< setup sync obj
 
-if web_app is not None:
-    webserver = tornado.httpserver.HTTPServer(web_app)
+if web_router is not None:
+    webserver = tornado.httpserver.HTTPServer(web_router)
     web_port = (base_port % 1000) + 11000
     print(f"starting webserver @ {web_port}")
     webserver.listen(web_port)

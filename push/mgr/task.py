@@ -1,7 +1,7 @@
 import threading
 import uuid
 
-from push.mgr.code_util import load_src
+from push.mgr.code_util import load_lambda
 
 
 class TaskControl:
@@ -24,7 +24,7 @@ class TaskManager:
         return self.run(task_type="lambda", src=src, *args, **kwargs)
 
     def run(self, task_type, src, *args, **kwargs):
-        src = load_src(self.kvstore, src)
+        src = load_lambda(self.kvstore, src)
         name = kwargs.get("name")
         name = name or str(uuid.uuid4())
         if name in self.task_threads:

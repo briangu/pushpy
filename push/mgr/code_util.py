@@ -16,6 +16,11 @@ def load_src(kvstore, src):
             return None
     else:
         src = dill.loads(src)
+    return src
+
+
+def load_lambda(kvstore, src):
+    src = load_src(kvstore, src)
     if isinstance(src, type):
         src = src()
         src = src.apply if hasattr(src, 'apply') else src

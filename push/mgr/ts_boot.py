@@ -4,35 +4,55 @@ import tornado.gen
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
+
 from pysyncobj.batteries import ReplList
+from tornado.routing import Router
 
 from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore
 from push.mgr.code_util import KvStoreLambda, load_src
-from push.mgr.push_manager import PushManager
 from push.mgr.task import TaskManager
 
 
-# def create_webserver(base_port, repl_kvstore):
-class MainHandler(tornado.web.RequestHandler):
-    kvstore = None
-
-    def initialize(self, kvstore):
-        self.kvstore = kvstore
-
-    @tornado.gen.coroutine
+class Handle404(tornado.web.RequestHandler):
     def get(self):
-        on_get_v = self.kvstore.get("on_get_v")
-        if on_get_v is not None:
-            kv_on_get = self.kvstore.get(f"on_get_v{on_get_v}")
-            if kv_on_get is not None:
-                kv_on_get = load_src(self.kvstore, kv_on_get)
-                kv_on_get(self)
+        self.set_status(404)
+        self.write('404 Not Found')
+
+
+# def create_webserver(base_port, repl_kvstore):
+# class MainHandler(tornado.web.RequestHandler):
+#     kvstore = None
+#
+#     def initialize(self, kvstore):
+#         self.kvstore = kvstore
+#
+#     @tornado.gen.coroutine
+#     def get(self):
+#         kv_on_get = load_src(self.kvstore, "kvstore:/web/")
+#         if kv_on_get is not None:
+#             kv_on_get(self)
+
+# https://stackoverflow.com/questions/47970574/tornado-routing-to-a-base-handler
+class MyRouter(Router):
+    def __init__(self, kvstore, app):
+        self.kvstore = kvstore
+        self.app = app
+
+    def find_handler(self, request, **kwargs):
+        try:
+            print(f"request.path={request.path}")
+            handler = load_src(self.kvstore, f"kvstore:/web{request.path}") or Handle404
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(e)
+            handler = Handle404
+
+        return self.app.get_handler_delegate(request, handler)
 
 
 def make_app(kvstore):
-    return tornado.web.Application([
-        ("/", MainHandler, {'kvstore': kvstore})
-    ])
+    return MyRouter(kvstore, tornado.web.Application())
 
 
 # class DoRegisterCallback:
@@ -79,6 +99,4 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     m_globals['repl_strategies'] = repl_strategies
     # m_globals['m_register'] = DoRegister(repl_kvstore)
 
-    return m_globals, make_app(repl_kvstore)
-
-
+    return m_globals, make_app(repl_code_store)
