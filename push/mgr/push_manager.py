@@ -6,5 +6,4 @@ class PushManager(BaseManager):
         super().connect()
         self.register('get_registry')
         for n in self.get_registry().apply():
-            print(n)
             self.register(n)
