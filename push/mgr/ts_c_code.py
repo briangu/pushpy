@@ -16,9 +16,9 @@ class BatchProcess:
 
 
 repl_code_store = m.repl_code_store()
-repl_code_store.inc_version_sync()
-repl_code_store.set_sync("batch_process", dill.dumps(BatchProcess))
-repl_code_store.commit_sync()
+# repl_code_store.inc_version_sync()
+repl_code_store.add_sync([("batch_process", dill.dumps(BatchProcess))])
+# repl_code_store.commit_sync()
 print(repl_code_store.apply_sync("batch_process", 1))
 print(repl_code_store.apply_sync("batch_process", 2))
 

@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import hashlib
 import os
 import socket
 import threading
@@ -140,9 +141,27 @@ class ReplCodeStore(SyncObjConsumer):
 
     def __init__(self):
         super(ReplCodeStore, self).__init__()
-        self.__data = {}
+        self.__objects = {}
+        self.__references = {}
         self.__version = 0
         self.__head = None
+
+
+    @staticmethod
+    def hash_obj(value):
+        m = hashlib.sha256()
+        m.update(value)
+        return m.digest()
+
+    def store_obj(self, value):
+        data = dill.dumps(value)
+        key = self.hash_obj(data)
+        self.__objects[key] = data
+        return key
+
+    def get_obj(self, key):
+        obj = self.__objects.get(key)
+        return dill.loads(obj) if obj is not None else None
 
     # TODO: specify requirements and dependent data keys (from data space)
     @replicated_sync
@@ -168,7 +187,6 @@ class ReplCodeStore(SyncObjConsumer):
     @replicated
     def set_head(self, version=None):
         version = version or self.__version
-        p = self.__head
         self.__head = min(version, self.__version)
 
     def get_head(self):
@@ -192,12 +210,23 @@ class ReplCodeStore(SyncObjConsumer):
 
     def get(self, key, version=None):
         version = version or self.get_head()
-        arr = self.__data.get(key)
+        arr = self.__references.get(key)
         if arr is not None:
             v = self.floor_to_version(arr, version)
             if v is not None:
-                return dill.loads(v)
+                return self.get_obj(v)
         return None
+
+    @replicated_sync
+    def add_sync(self, items):
+        self.add(items, _doApply=True)
+
+    @replicated
+    def add(self, items):
+        self.inc_version(_doApply=True)
+        for key, value in items:
+            self.set(key, value, _doApply=True)
+        self.commit(_doApply=True)
 
     @replicated_sync
     def set_sync(self, key, value):
@@ -205,11 +234,12 @@ class ReplCodeStore(SyncObjConsumer):
 
     @replicated
     def set(self, key, value):
-        arr = self.__data.get(key)
+        obj_key = self.store_obj(value)
+        arr = self.__references.get(key)
         if arr is None:
             arr = []
-        arr.append((self.__version, dill.dumps(value)))
-        self.__data[key] = arr
+        arr.append((self.__version, obj_key))
+        self.__references[key] = arr
 
     @replicated_sync
     def apply_sync(self, key, *args, **kwargs):
