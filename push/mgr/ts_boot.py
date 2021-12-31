@@ -66,7 +66,7 @@ def make_app(kvstore):
 def main() -> (typing.List[object], typing.Dict[str, object]):
     repl_kvstore = ReplSyncDict(on_set=None)
     repl_code_store = ReplCodeStore()
-    repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_kvstore, "process_ts_updates"))
+    repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_code_store, "process_ts_updates"))
     repl_strategies = ReplList()
 
     tm = TaskManager(repl_kvstore)

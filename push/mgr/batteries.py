@@ -222,8 +222,9 @@ class ReplCodeStore(SyncObjConsumer):
         self.add(items, _doApply=True)
 
     @replicated
-    def add(self, items):
+    def add(self, *args):
         self.inc_version(_doApply=True)
+        items = args[0] if len(args) == 1 else [tuple(args[:2])]
         for key, value in items:
             self.set(key, value, _doApply=True)
         self.commit(_doApply=True)
