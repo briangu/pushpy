@@ -20,6 +20,8 @@ class BatchProcess2:
         import math
         return math.pi + k
 
+# TODO: test storing result and using it in a subsequent task
+# TODO: add support for daemon deployment via repl task
 repl_tasks = m.repl_tasks()
 
 repl_code_store = m.repl_code_store()
