@@ -19,29 +19,16 @@ class Handle404(tornado.web.RequestHandler):
         self.write('404 Not Found')
 
 
-# def create_webserver(base_port, repl_kvstore):
-# class MainHandler(tornado.web.RequestHandler):
-#     kvstore = None
-#
-#     def initialize(self, kvstore):
-#         self.kvstore = kvstore
-#
-#     @tornado.gen.coroutine
-#     def get(self):
-#         kv_on_get = load_src(self.kvstore, "kvstore:/web/")
-#         if kv_on_get is not None:
-#             kv_on_get(self)
-
 # https://stackoverflow.com/questions/47970574/tornado-routing-to-a-base-handler
 class MyRouter(Router):
-    def __init__(self, kvstore, app):
+    def __init__(self, kvstore, app, prefix=None):
         self.kvstore = kvstore
         self.app = app
+        self.prefix = prefix or "/web"
 
     def find_handler(self, request, **kwargs):
         try:
-            print(f"request.path={request.path}")
-            handler = load_src(self.kvstore, f"kvstore:/web{request.path}") or Handle404
+            handler = load_src(self.kvstore, f"kvstore:{self.prefix}{request.path}") or Handle404
         except Exception as e:
             import traceback
             traceback.print_exc()

@@ -14,7 +14,7 @@ from pysyncobj import replicated, SyncObjConsumer
 from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
 
-from push.mgr.code_util import load_src
+from push.mgr.code_util import load_lambda
 
 
 class ReplSyncDict(ReplDict):
@@ -257,7 +257,7 @@ class ReplCodeStore(SyncObjConsumer):
     @replicated
     def apply(self, key, *args, **kwargs):
         key = key if key.startswith("kvstore:") else f"kvstore:{key}"
-        src = load_lamdba(self, key)
+        src = load_lambda(self, key)
         if src is not None:
             ctx = {'src': src, 'args': args, 'kwargs': kwargs}
             # TOOD: support lambda requirements
