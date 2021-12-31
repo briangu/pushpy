@@ -24,11 +24,11 @@ class MyRouter(Router):
     def __init__(self, kvstore, app, prefix=None):
         self.kvstore = kvstore
         self.app = app
-        self.prefix = prefix or "/web"
+        self.prefix = f"kvstore:{prefix or '/web'}"
 
     def find_handler(self, request, **kwargs):
         try:
-            handler = load_src(self.kvstore, f"kvstore:{self.prefix}{request.path}") or Handle404
+            handler = load_src(self.kvstore, f"{self.prefix}{request.path}") or Handle404
         except Exception as e:
             import traceback
             traceback.print_exc()
