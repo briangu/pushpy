@@ -6,6 +6,7 @@ import threading
 import time
 import weakref
 
+import dill
 import numpy as np
 import pandas as pd
 from pysyncobj import replicated, SyncObjConsumer
@@ -32,12 +33,171 @@ class ReplSyncDict(ReplDict):
             self.on_set(key, value)
 
 
-# TODO: add HEAD / tree and hash->blob support
-class ReplCodeStore(ReplDict):
+# # TODO: scan repl_obj for all methods and add to this, proxying all replicated operations to parent
+# class _ReplDynamicProxy:
+#     def __init__(self, parent, name, repl_obj):
+#         self.parent = parent
+#         self.name = name
+#         self.repl_obj = repl_obj
+#
+#     def apply(self, method, *args, **kwargs):
+#         return self.parent.apply(self.name, method, *args, **kwargs)
+#
+#
+# # usage: this will be the base repl data structure for a Push server
+# #       it supports adding new / removing named sub-consumers as a replicated action
+# #       it supports operating on added sub-consumers as a replicated action
+# class ReplDynamicConsumer(SyncObjConsumer):
+#     def __init__(self):
+#         super(ReplDynamicConsumer, self).__init__()
+#         self.__properties = set()
+#         for key in self.__dict__:
+#             self.__properties.add(key)
+#         self.__data = {}
+#
+#     def obj_from_type(self, repl_type):
+#         if repl_type == "list":
+#             obj = ReplList()
+#         elif repl_type == "dict":
+#             obj = ReplDict()
+#         elif repl_type == "ts":
+#             obj = ReplTimeseries()
+#         else:
+#             raise RuntimeError(f"unknown type: {repl_type}")
+#         obj._syncObj = self
+#         return obj
+#
+#     @replicated
+#     def add(self, name, repl_type):
+#         if name in self.__data:
+#             raise RuntimeError(f"name already present: {name}")
+#         self.__data[name] = {'type': repl_type, 'obj': self.obj_from_type(repl_type)}
+#
+#     @replicated
+#     def remove(self, name):
+#         self.__delitem__(name, _doApply=True)
+#
+#     @replicated
+#     def __delitem__(self, name):
+#         if name in self.__data:
+#             del self.__data[name]
+#
+#     @replicated
+#     def apply(self, name, method, *args, **kwargs):
+#         if name not in self.__data:
+#             raise RuntimeError(f"name already present: {name}")
+#         d = self.__data[name]['obj']
+#         if not hasattr(d, method):
+#             raise RuntimeError(f"method not found: {name} {method}")
+#         return getattr(d, method)(*args, **kwargs)
+#
+#     def __getitem__(self, name):
+#         repl_obj = self.__data.get(name)['obj']
+#         return _ReplDynamicProxy(self, name, repl_obj) if repl_obj is not None else None
+#
+#     def _serialize(self):
+#         d = dict()
+#         for k, v in [(k, v) for k, v in iteritems(self.__dict__) if k not in self.__properties]:
+#             if k.endswith("__data") and isinstance(v, dict):
+#                 _d = dict()
+#                 for _k, _v in iteritems(v):
+#                     __d = dict()
+#                     __d['type'] = _v['type']
+#                     __d['obj'] = _v['obj']._serialize()
+#                     _d[_k] = __d
+#                 v = _d
+#             d[k] = v
+#         return d
+#
+#     # TODO: recurse into subconsumers
+#     def _deserialize(self, data):
+#         for k, v in iteritems(data):
+#             if k.endswith("__data") and isinstance(v, dict):
+#                 _d = dict()
+#                 for _k, _v in iteritems(v):
+#                     __d = dict()
+#                     __d['type'] = _v['type']
+#                     obj = self.obj_from_type(_v['type'])
+#                     obj._deserialize(_v['obj'])
+#                     __d['obj'] = obj
+#                     _d[_k] = __d
+#                 v = _d
+#             self.__dict__[k] = v
 
-    def __init__(self, on_set=None):
-        self.on_set = on_set
+#
+# Replicated Code Store with versioning
+#   ex usage:
+#       obj.inc_version()
+#       obj.set("/a", pickle.dumps(lambda: 1))
+#       obj.set("/b", pickle.dumps(lambda: 2))
+#       obj.commit()
+#       obj.inc_version()
+#       obj.set("/a", pickle.dumps(lambda: 3))
+#       obj.commit()
+#       v = obj.get("/a")
+#       v() expect ==> 3
+class ReplCodeStore(SyncObjConsumer):
+
+    def __init__(self):
         super(ReplCodeStore, self).__init__()
+        self.__data = {}
+        self.__version = 0
+        self.__head = None
+
+    # TODO: specify requirements and dependent data keys (from data space)
+    @replicated_sync
+    def set_sync(self, key, value):
+        self.set(key, value, _doApply=True)
+
+    @replicated_sync
+    def inc_version_sync(self):
+        self.inc_version(_doApply=True)
+
+    @replicated
+    def inc_version(self):
+        self.__version += 1
+        return self.__version
+
+    def get_version(self):
+        return self.__version
+
+    @replicated_sync
+    def set_head_sync(self, version=None):
+        self.set_head(version=version, _doApply=True)
+
+    @replicated
+    def set_head(self, version=None):
+        version = version or self.__version
+        p = self.__head
+        self.__head = min(version, self.__version)
+
+    def get_head(self):
+        return self.__head
+
+    @replicated_sync
+    def commit_sync(self):
+        self.commit(_doApply=True)
+
+    @replicated
+    def commit(self):
+        self.set_head(version=None, _doApply=True)
+
+    @staticmethod
+    def floor_to_version(arr, version):
+        for i in reversed(range(len(arr))):
+            v = arr[i][0]
+            if v <= version:
+                return arr[i][1]
+        return None
+
+    def get(self, key, version=None):
+        version = version or self.get_head()
+        arr = self.__data.get(key)
+        if arr is not None:
+            v = self.floor_to_version(arr, version)
+            if v is not None:
+                return dill.loads(v)
+        return None
 
     @replicated_sync
     def set_sync(self, key, value):
@@ -45,23 +205,35 @@ class ReplCodeStore(ReplDict):
 
     @replicated
     def set(self, key, value):
-        super().set(key, value, _doApply=True)
-        if self.on_set is not None:
-            self.on_set(key, value)
+        arr = self.__data.get(key)
+        if arr is None:
+            arr = []
+        arr.append((self.__version, dill.dumps(value)))
+        self.__data[key] = arr
 
     @replicated_sync
     def apply_sync(self, key, *args, **kwargs):
         return self.apply(key, *args, **kwargs, _doApply=True)
 
+    # TODO: add ability to store result in (a?) kvstore
+    # TODO: add import context - can we execute with a specified context?
+    # TODO: this will replay on load.  is this the desired behavior?
+    #           can we make it so that they don't rerun if they aren't new or too old?
+    # NOTE: all operations need to be idempotent
     @replicated
     def apply(self, key, *args, **kwargs):
         key = key if key.startswith("kvstore:") else f"kvstore:{key}"
         src = load_src(self, key)
         if src is not None:
-            print(f"{key}({[*args]}")
-            r = src(*args, **kwargs)
-            print(r)
-            return r
+            ctx = {'src': src, 'args': args, 'kwargs': kwargs}
+            # TOOD: support lambda requirements
+            # exec('import math', ctx)
+            try:
+                exec(f"r = src(*args, **kwargs)", ctx)
+                print(ctx['r'])
+                return ctx['r']
+            except Exception as e:
+                return e
         return None
 
 
