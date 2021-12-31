@@ -149,7 +149,6 @@ class ReplCodeStore(SyncObjConsumer):
         self.__version = 0
         self.__head = None
 
-
     @staticmethod
     def hash_obj(value):
         m = hashlib.sha256()
@@ -196,11 +195,17 @@ class ReplCodeStore(SyncObjConsumer):
         return self.__head
 
     @replicated_sync
-    def commit_sync(self):
-        self.commit(_doApply=True)
+    def commit_sync(self, *args):
+        self.commit(*args, _doApply=True)
 
+    # TODO: add support for comment?
     @replicated
-    def commit(self):
+    def commit(self, *args):
+        if len(args) > 0:
+            self.inc_version(_doApply=True)
+            items = [args[0]] if isinstance(args[0], tuple) else args[0] if len(args) == 1 else [tuple(args[:2])]
+            for key, value in items:
+                self.set(key, value, _doApply=True)
         self.set_head(version=None, _doApply=True)
 
     @staticmethod
@@ -220,17 +225,27 @@ class ReplCodeStore(SyncObjConsumer):
                 return self.get_obj(v)
         return None
 
-    @replicated_sync
-    def add_sync(self, items):
-        self.add(items, _doApply=True)
+    # TODO: could use yield
+    def keys(self, version=None):
+        version = version or self.get_head()
+        all_keys = []
+        for key, arr in self.__references.items():
+            v = self.floor_to_version(arr, version)
+            if v is not None:
+                all_keys.append(key)
+        return all_keys
 
-    @replicated
-    def add(self, *args):
-        self.inc_version(_doApply=True)
-        items = args[0] if len(args) == 1 else [tuple(args[:2])]
-        for key, value in items:
-            self.set(key, value, _doApply=True)
-        self.commit(_doApply=True)
+    # @replicated_sync
+    # def add_sync(self, items):
+    #     self.add(items, _doApply=True)
+    #
+    # @replicated
+    # def add(self, *args):
+    #     self.inc_version(_doApply=True)
+    #     items = args[0] if len(args) == 1 else [tuple(args[:2])]
+    #     for key, value in items:
+    #         self.set(key, value, _doApply=True)
+    #     self.commit(_doApply=True)
 
     @replicated_sync
     def set_sync(self, key, value):
@@ -245,30 +260,25 @@ class ReplCodeStore(SyncObjConsumer):
         arr.append((self.__version, obj_key))
         self.__references[key] = arr
 
-    @replicated_sync
-    def apply_sync(self, key, *args, **kwargs):
-        return self.apply(key, *args, **kwargs, _doApply=True)
 
-    # TODO: add ability to store result in (a?) kvstore
-    # TODO: add import context - can we execute with a specified context?
-    # TODO: this will replay on load.  is this the desired behavior?
-    #           can we make it so that they don't rerun if they aren't new or too old?
-    # NOTE: all operations need to be idempotent
+class ReplTaskManager(SyncObjConsumer):
+
+    def __init__(self, kvstore, task_manager):
+        self.kvstore = kvstore
+        self.task_manager = task_manager
+        super(ReplTaskManager, self).__init__()
+
+    @replicated_sync
+    def apply_sync(self, src, *args, result_key=None, **kwargs):
+        return self.apply(src, *args, result_key=result_key, **kwargs, _doApply=True)
+
     @replicated
-    def apply(self, key, *args, **kwargs):
-        key = key if key.startswith("kvstore:") else f"kvstore:{key}"
-        src = load_lambda(self, key)
-        if src is not None:
-            ctx = {'src': src, 'args': args, 'kwargs': kwargs}
-            # TOOD: support lambda requirements
-            # exec('import math', ctx)
-            try:
-                exec(f"r = src(*args, **kwargs)", ctx)
-                print(ctx['r'])
-                return ctx['r']
-            except Exception as e:
-                return e
-        return None
+    def apply(self, src, *args, result_key=None, **kwargs):
+        ctx = self.kvstore.rawData().copy()
+        r = self.task_manager.run("lambda", src, *args, ctx=ctx, **kwargs)
+        if result_key is not None:
+            self.kvstore.set(result_key, r)
+        return r
 
 
 class ReplTimeseries(SyncObjConsumer):
@@ -367,7 +377,7 @@ class _ReplLockDataManagerImpl(SyncObjConsumer):
 
 class ReplLockDataManager(object):
 
-    def __init__(self, autoUnlockTime, selfID = None):
+    def __init__(self, autoUnlockTime, selfID=None):
         """Replicated Lock Manager. Allow to acquire / release distributed locks.
 
         :param autoUnlockTime: lock will be released automatically

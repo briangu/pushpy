@@ -20,19 +20,19 @@ class BatchProcess2:
         import math
         return math.pi + k
 
+repl_tasks = m.repl_tasks()
+
 repl_code_store = m.repl_code_store()
-# repl_code_store.inc_version_sync()
-repl_code_store.add_sync([("batch_process", dill.dumps(BatchProcess))])
-# repl_code_store.commit_sync()
-assert BatchProcess().apply(1) == repl_code_store.apply_sync("batch_process", 1)
-assert BatchProcess().apply(2) == repl_code_store.apply_sync("batch_process", 2)
-repl_code_store.add_sync([("batch_process", dill.dumps(BatchProcess2))])
-assert BatchProcess2().apply(1) == repl_code_store.apply_sync("batch_process", 1)
-assert BatchProcess2().apply(2) == repl_code_store.apply_sync("batch_process", 2)
+repl_code_store.commit_sync("batch_process", dill.dumps(BatchProcess))
+assert BatchProcess().apply(1) == repl_tasks.apply_sync("batch_process", 1)
+assert BatchProcess().apply(2) == repl_tasks.apply_sync("batch_process", 2)
+repl_code_store.commit_sync([("batch_process", dill.dumps(BatchProcess2))])
+assert BatchProcess2().apply(1) == repl_tasks.apply_sync("batch_process", 1)
+assert BatchProcess2().apply(2) == repl_tasks.apply_sync("batch_process", 2)
 v = repl_code_store.get_head()
 repl_code_store.set_head_sync(v - 1)
-assert BatchProcess().apply(1) == repl_code_store.apply_sync("batch_process", 1)
-assert BatchProcess().apply(2) == repl_code_store.apply_sync("batch_process", 2)
+assert BatchProcess().apply(1) == repl_tasks.apply_sync("batch_process", 1)
+assert BatchProcess().apply(2) == repl_tasks.apply_sync("batch_process", 2)
 repl_code_store.set_head_sync(v)
 
 def do_pi(k):
@@ -45,8 +45,8 @@ assert repl_code_store.get_version() == v + 1
 repl_code_store.set_sync("my_lambda", dill.dumps(do_pi))
 repl_code_store.commit_sync()
 assert repl_code_store.get_head() == v + 1
-assert do_pi(1) == repl_code_store.apply_sync("my_lambda", 1)
-assert do_pi(2) == repl_code_store.apply_sync("my_lambda", 2)
+assert do_pi(1) == repl_tasks.apply_sync("my_lambda", 1)
+assert do_pi(2) == repl_tasks.apply_sync("my_lambda", 2)
 
 my_lambda = lambda x: x*2
 
@@ -56,17 +56,17 @@ repl_code_store.set_sync("my_lambda", dill.dumps(my_lambda))
 repl_code_store.commit_sync()
 assert repl_code_store.get_head() == v + 1
 
-assert my_lambda(3) == repl_code_store.apply_sync("my_lambda", 3)
-assert my_lambda(4) == repl_code_store.apply_sync("my_lambda", 4)
+assert my_lambda(3) == repl_tasks.apply_sync("my_lambda", 3)
+assert my_lambda(4) == repl_tasks.apply_sync("my_lambda", 4)
 
 v = repl_code_store.get_head()
 repl_code_store.set_head_sync(v - 1)
 assert repl_code_store.get_head() == v - 1
 v = repl_code_store.get_head()
-assert do_pi(3) == repl_code_store.apply_sync("my_lambda", 3)
-assert do_pi(4) == repl_code_store.apply_sync("my_lambda", 4)
+assert do_pi(3) == repl_tasks.apply_sync("my_lambda", 3)
+assert do_pi(4) == repl_tasks.apply_sync("my_lambda", 4)
 
 # expect None response
-assert repl_code_store.apply("my_lambda", 3) is None
-assert repl_code_store.apply("my_lambda", 4) is None
+assert repl_tasks.apply("my_lambda", 3) is None
+assert repl_tasks.apply("my_lambda", 4) is None
 

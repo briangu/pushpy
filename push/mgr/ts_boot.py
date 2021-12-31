@@ -8,9 +8,9 @@ import tornado.web
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore
+from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore, ReplTaskManager
 from push.mgr.code_util import KvStoreLambda, load_src
-from push.mgr.task import TaskManager
+from push.mgr.task_manager import TaskManager
 
 
 class Handle404(tornado.web.RequestHandler):
@@ -76,11 +76,13 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_code_store, "process_ts_updates"))
     repl_strategies = ReplList()
 
-    tm = TaskManager(repl_kvstore)
+    tm = TaskManager(repl_code_store)
+    repl_task_manager = ReplTaskManager(repl_kvstore, tm)
 
     m_globals = dict()
     m_globals['repl_kvstore'] = repl_kvstore
     m_globals['repl_code_store'] = repl_code_store
+    m_globals['repl_tasks'] = repl_task_manager
     m_globals['local_tasks'] = tm
     m_globals['repl_ts'] = repl_ts
     m_globals['repl_strategies'] = repl_strategies
