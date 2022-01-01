@@ -12,6 +12,8 @@ m.connect()
 repl_code_store = m.repl_code_store()
 
 
+# curl -X PUT -d'{"k":"my_key", "v":"my_value"}' -H 'Content-Type: application/json' localhost:11000/kv
+# curl localhost:11000/kv?k=my_key
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
         print(self.request.arguments)

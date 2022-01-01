@@ -39,7 +39,7 @@ def process_ts_updates(idx_data, keys, data):
 
 
 repl_code_store = m.repl_code_store()
-repl_code_store.add("process_ts_updates", dill.dumps(process_ts_updates))
+repl_code_store.commit_sync("process_ts_updates", dill.dumps(process_ts_updates))
 
 
 def random_host_requirement():
@@ -79,8 +79,8 @@ class DataGeneratorTask:
 
 ts = m.repl_ts().reset()
 
-kvstore = m.repl_kvstore()
-kvstore.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
+repl_code_store = m.repl_code_store()
+repl_code_store.set_sync("my_daemon_task", dill.dumps(DataGeneratorTask))
 
 dt = m.local_tasks()
 dt.stop("mdt")

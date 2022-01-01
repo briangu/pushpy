@@ -46,7 +46,7 @@ def do_pi(k):
 
 v = repl_code_store.get_head()
 repl_code_store.inc_version_sync()
-assert repl_code_store.get_version() == v + 1
+assert repl_code_store.get_max_version() == v + 1
 repl_code_store.set_sync("my_lambda", dill.dumps(do_pi))
 repl_code_store.commit_sync()
 assert repl_code_store.get_head() == v + 1

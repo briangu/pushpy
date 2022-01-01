@@ -135,9 +135,6 @@ class ReplSyncDict(ReplDict):
 #       obj.commit()
 #       v = obj.get("/a")
 #       v() expect ==> 3
-# TODO: add enumerate all keys /w lambda
-#       flush to disk directory?
-#       load from disk directory?
 class ReplCodeStore(SyncObjConsumer):
 
     def __init__(self):
@@ -177,7 +174,7 @@ class ReplCodeStore(SyncObjConsumer):
         self.__version += 1
         return self.__version
 
-    def get_version(self):
+    def get_max_version(self):
         return self.__version
 
     @replicated_sync
@@ -257,6 +254,58 @@ class ReplCodeStore(SyncObjConsumer):
             arr = []
         arr.append((self.__version, obj_key))
         self.__references[key] = arr
+
+
+# https://realpython.com/python-import/
+# https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using
+class CodeStoreLoader:
+
+    @staticmethod
+    def load_github(store, key_prefix, repo):
+        from github import Github
+        g = Github()
+        repo = g.get_repo(repo)
+        contents = repo.get_contents("")
+        while contents:
+            file_content = contents.pop(0)
+            if file_content.type == "dir":
+                contents.extend(repo.get_contents(file_content.path))
+            else:
+                print(file_content.path)
+                # store.set(f"{key_prefix}file_content.path")
+
+    @staticmethod
+    def load_file(store, key_prefix, path):
+        pass
+
+    # @staticmethod
+    # def load_uri():
+
+    # handles:
+    #   file: (file or dir), http:, github:<user>/<repo>
+    @staticmethod
+    def load(store, uri):
+        pass
+
+    @staticmethod
+    def export_dir(store, path, version=None):
+        pass
+
+    @staticmethod
+    def load_dir(store, path):
+        pass
+
+    @staticmethod
+    def install_importer(store):
+        import sys
+
+        class DebugFinder:
+            @classmethod
+            def find_spec(cls, name, path, target=None):
+                print(f"Importing {name!r} {path!r}")
+                return None
+
+        sys.meta_path.insert(0, DebugFinder)
 
 
 class ReplTaskManager(SyncObjConsumer):

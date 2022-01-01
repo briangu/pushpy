@@ -10,7 +10,7 @@ push~=0.3.10
 tornado~=6.1
 pysyncobj~=0.3.10
 psutil~=5.8.0
-
+PyGithub
 websockets~=10.1
 websocket~=0.2.1
 gevent~=21.12.0

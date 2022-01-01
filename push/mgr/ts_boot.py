@@ -8,7 +8,7 @@ import tornado.web
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore, ReplTaskManager
+from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplCodeStore, ReplTaskManager, CodeStoreLoader
 from push.mgr.code_util import KvStoreLambda, load_src
 from push.mgr.task_manager import TaskManager
 
@@ -87,5 +87,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     m_globals['repl_ts'] = repl_ts
     m_globals['repl_strategies'] = repl_strategies
     # m_globals['m_register'] = DoRegister(repl_kvstore)
+
+    CodeStoreLoader.install_importer(repl_code_store)
 
     return m_globals, make_app(repl_code_store)
