@@ -14,8 +14,6 @@ from pysyncobj import replicated, SyncObjConsumer
 from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
 
-from push.mgr.code_util import load_lambda
-
 
 class ReplSyncDict(ReplDict):
 
@@ -225,7 +223,7 @@ class ReplCodeStore(SyncObjConsumer):
                 return self.get_obj(v)
         return None
 
-    # TODO: could use yield
+    #https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
     def keys(self, version=None):
         version = version or self.get_head()
         all_keys = []
@@ -233,7 +231,7 @@ class ReplCodeStore(SyncObjConsumer):
             v = self.floor_to_version(arr, version)
             if v is not None:
                 all_keys.append(key)
-        return all_keys
+        return all_keys.__iter__()
 
     # @replicated_sync
     # def add_sync(self, items):
