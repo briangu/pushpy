@@ -6,6 +6,8 @@ import socket
 import threading
 import time
 import weakref
+from collections import Mapping
+from typing import ValuesView, ItemsView
 
 import dill
 import numpy as np
@@ -135,30 +137,84 @@ class ReplSyncDict(ReplDict):
 #       obj.commit()
 #       v = obj.get("/a")
 #       v() expect ==> 3
-class ReplCodeStore(SyncObjConsumer):
+
+class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     def __init__(self):
-        super(ReplCodeStore, self).__init__()
+        super(ReplVersionedDict, self).__init__()
         self.__objects = {}
         self.__references = {}
         self.__version = 0
         self.__head = None
+        self.__in_transaction = False
+
+    def __getitem__(self, k):
+        return self.get(k)
+
+    def __len__(self):
+        version = self.get_head()
+        x = 0
+        for key, arr in self.__references.items():
+            v = self.__floor_to_version(arr, version)
+            if v is not None:
+                x += 1
+        return x
+
+    # https://docs.python.org/3/reference/datamodel.html#object.__iter__
+    def __iter__(self):
+        return self.keys()
+
+    def items(self):  # -> ItemsView[_KT, _VT_co]:
+        version = self.get_head()
+        for key, arr in self.__references.items():
+            v = self.__floor_to_version(arr, version)
+            if v is not None:
+                yield key, self.__get_obj(v)
+
+    def values(self):
+        version = self.get_head()
+        for key, arr in self.__references.items():
+            v = self.__floor_to_version(arr, version)
+            if v is not None:
+                yield self.__get_obj(v)
+
+    def __contains__(self, o: object) -> bool:
+        return self.get(o) is not None
+
+    @replicated
+    def __delitem__(self, key):
+        # TODO: put a tombstone into the end of the array so that it's ignored in __floor_to_version
+        # does this do a commit?
+        pass
+
+    #https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
+    def keys(self, version=None):
+        version = version or self.get_head()
+        all_keys = []
+        for key, arr in self.__references.items():
+            v = self.__floor_to_version(arr, version)
+            if v is not None:
+                all_keys.append(key)
+        return all_keys.__iter__()
 
     @staticmethod
-    def hash_obj(value):
+    def __hash_obj(value):
         m = hashlib.sha256()
         m.update(value)
         return m.digest()
 
-    def store_obj(self, value):
+    def __store_obj(self, value):
         data = dill.dumps(value)
-        key = self.hash_obj(data)
+        key = self.__hash_obj(data)
         self.__objects[key] = data
         return key
 
-    def get_obj(self, key):
+    def __get_obj(self, key):
         obj = self.__objects.get(key)
         return dill.loads(obj) if obj is not None else None
+
+    def in_transaction(self):
+        return self.__in_transaction
 
     # TODO: specify requirements and dependent data keys (from data space)
     @replicated_sync
@@ -171,7 +227,10 @@ class ReplCodeStore(SyncObjConsumer):
 
     @replicated
     def inc_version(self):
+        if self.__in_transaction:
+            raise RuntimeError("transaction already in progress")
         self.__version += 1
+        self.__in_transaction = True
         return self.__version
 
     def get_max_version(self):
@@ -197,14 +256,19 @@ class ReplCodeStore(SyncObjConsumer):
     @replicated
     def commit(self, *args):
         if len(args) > 0:
+            if self.__in_transaction:
+                raise RuntimeError("transaction already in progress")
             self.inc_version(_doApply=True)
             items = [args[0]] if isinstance(args[0], tuple) else args[0] if len(args) == 1 else [tuple(args[:2])]
             for key, value in items:
                 self.set(key, value, _doApply=True)
+        elif not self.__in_transaction:
+            raise RuntimeError("no transaction in progress")
+        self.__in_transaction = False
         self.set_head(version=None, _doApply=True)
 
     @staticmethod
-    def floor_to_version(arr, version):
+    def __floor_to_version(arr, version):
         for i in reversed(range(len(arr))):
             v = arr[i][0]
             if v <= version:
@@ -215,32 +279,10 @@ class ReplCodeStore(SyncObjConsumer):
         version = version or self.get_head()
         arr = self.__references.get(key)
         if arr is not None:
-            v = self.floor_to_version(arr, version)
+            v = self.__floor_to_version(arr, version)
             if v is not None:
-                return self.get_obj(v)
+                return self.__get_obj(v)
         return None
-
-    #https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
-    def keys(self, version=None):
-        version = version or self.get_head()
-        all_keys = []
-        for key, arr in self.__references.items():
-            v = self.floor_to_version(arr, version)
-            if v is not None:
-                all_keys.append(key)
-        return all_keys.__iter__()
-
-    # @replicated_sync
-    # def add_sync(self, items):
-    #     self.add(items, _doApply=True)
-    #
-    # @replicated
-    # def add(self, *args):
-    #     self.inc_version(_doApply=True)
-    #     items = args[0] if len(args) == 1 else [tuple(args[:2])]
-    #     for key, value in items:
-    #         self.set(key, value, _doApply=True)
-    #     self.commit(_doApply=True)
 
     @replicated_sync
     def set_sync(self, key, value):
@@ -248,7 +290,7 @@ class ReplCodeStore(SyncObjConsumer):
 
     @replicated
     def set(self, key, value):
-        obj_key = self.store_obj(value)
+        obj_key = self.__store_obj(value) if value is not None else None
         arr = self.__references.get(key)
         if arr is None:
             arr = []
