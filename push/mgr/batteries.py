@@ -138,23 +138,45 @@ class ReplSyncDict(ReplDict):
 #       v = obj.get("/a")
 #       v() expect ==> 3
 
+#   with obj:
+#       obj.set("/a", pickle.dumps(lambda: 1))
+#       obj.set("/b", pickle.dumps(lambda: 2))
+#
+# get:
+#   obj['/']
+#   obj.get("/")
+
+
 class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     def __init__(self):
         super(ReplVersionedDict, self).__init__()
         self.__objects = {}
         self.__references = {}
-        self.__version = 0
+        self.__version = None
         self.__head = None
         self.__in_transaction = False
+        self.__len_cache = None
+
+    def __enter__(self):
+        self.inc_version_sync()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.commit()
 
     def __getitem__(self, k):
-        return self.get(k)
+        x = self.get(k)
+        if x is None:
+            raise KeyError(k)
+        return x
 
-    # this is not very efficient, but it also needs to factor in the version
     def __len__(self):
         version = self.get_head()
-        return sum([1 for arr in self.__references.values() if self.__floor_to_version(arr, version) is not None])
+        if self.__len_cache is not None and self.__len_cache[0] == version:
+            return self.__len_cache[1]
+        x = sum([1 for arr in self.__references.values() if self.__floor_to_version(arr, version) is not None])
+        self.__len_cache = (version, x)
+        return x
 
     # https://docs.python.org/3/reference/datamodel.html#object.__iter__
     def __iter__(self):
@@ -181,6 +203,8 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     def __delitem__(self, key):
         # TODO: put a tombstone into the end of the array so that it's ignored in __floor_to_version
         # does this do a commit?
+        # if not self.__in_transaction:
+        #     raise RuntimeError("no transaction in progress")
         pass
 
     # https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
@@ -226,7 +250,7 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     def inc_version(self):
         if self.__in_transaction:
             raise RuntimeError("transaction already in progress")
-        self.__version += 1
+        self.__version = 0 if self.__version is None else self.__version + 1
         self.__in_transaction = True
         return self.__version
 
@@ -239,11 +263,14 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     @replicated
     def set_head(self, version=None):
-        version = version or self.__version
-        self.__head = min(version, self.__version)
+        if self.__version is None:
+            if version is not None:
+                raise RuntimeError("no prior transactions")
+        else:
+            self.__head = min(version or self.__version, self.__version)
 
     def get_head(self):
-        return self.__head
+        return self.__head or self.__version
 
     @replicated_sync
     def commit_sync(self, *args):
@@ -272,8 +299,8 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
                 return arr[i][1]
         return None
 
-    def get(self, key, version=None):
-        version = version or self.get_head()
+    def get(self, key):
+        version = self.get_head()
         arr = self.__references.get(key)
         if arr is not None:
             v = self.__floor_to_version(arr, version)
@@ -287,6 +314,8 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     @replicated
     def set(self, key, value):
+        if not self.__in_transaction:
+            raise RuntimeError("no transaction in progress")
         obj_key = self.__store_obj(value) if value is not None else None
         arr = self.__references.get(key)
         if arr is None:
