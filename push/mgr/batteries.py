@@ -151,27 +151,23 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     def __getitem__(self, k):
         return self.get(k)
 
+    # this is not very efficient, but it also needs to factor in the version
     def __len__(self):
         version = self.get_head()
-        x = 0
-        for key, arr in self.__references.items():
-            v = self.__floor_to_version(arr, version)
-            if v is not None:
-                x += 1
-        return x
+        return sum([1 for arr in self.__references.values() if self.__floor_to_version(arr, version) is not None])
 
     # https://docs.python.org/3/reference/datamodel.html#object.__iter__
     def __iter__(self):
         return self.keys()
 
-    def items(self):  # -> ItemsView[_KT, _VT_co]:
+    def items(self) -> ItemsView:
         version = self.get_head()
         for key, arr in self.__references.items():
             v = self.__floor_to_version(arr, version)
             if v is not None:
                 yield key, self.__get_obj(v)
 
-    def values(self):
+    def values(self) -> ValuesView:
         version = self.get_head()
         for key, arr in self.__references.items():
             v = self.__floor_to_version(arr, version)
@@ -187,7 +183,8 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         # does this do a commit?
         pass
 
-    #https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
+    # https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
+    # TODO: impelement KeysView so it works over BaseManager
     def keys(self, version=None):
         version = version or self.get_head()
         all_keys = []
