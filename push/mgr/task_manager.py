@@ -22,8 +22,8 @@ class TaskManager:
         self.code_store = code_store
 
     def apply(self, src, *args, ctx=None, **kwargs):
-        key = src if src.startswith("kvstore:") else f"kvstore:{src}"
-        src = load_lambda(self.code_store, key)
+        src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
+        src = load_lambda(self.code_store, src)
         if src is not None:
             ctx = ctx.copy() if ctx is not None else {}
             ctx.update({'src': src, 'args': args, 'kwargs': kwargs})
