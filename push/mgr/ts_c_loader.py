@@ -19,19 +19,23 @@ class Adder:
 
 
 class Interpreter:
-    def apply(self, commands):
+    def apply(self, ops, i = None):
         from repl_code_store.interpreter import Adder, Multiplier
-        print(Adder)
-        r = 0
-        for i in range(len(commands)):
-            cmd = commands[i]
-            if cmd == "add":
-                r += Adder().apply(commands[i + 1], commands[i + 2])
-                i += 2
-            elif cmd == "mul":
-                r += Multiplier().apply(commands[i + 1], commands[i + 2])
-                i += 2
-        return r
+        print(ops, i)
+        i = 0 if i is None else i
+        while i < len(ops):
+            op = ops[i]
+            i += 1
+            if op == "add":
+                a, i = self.apply(ops, i)
+                b, i = self.apply(ops, i)
+                return Adder().apply(a, b), i
+            elif op == "mul":
+                a, i = self.apply(ops, i)
+                b, i = self.apply(ops, i)
+                return Multiplier().apply(a, b), i
+            else:
+                return op, i
 
 
 repl_tasks = m.repl_tasks()
@@ -44,6 +48,5 @@ repl_code_store.update({
     "interpreter.Multiplier": dill.dumps(Multiplier)
 }, sync=True)
 
-commands = ['add', 1, 2, 'mul', 3, 4]
-r = local_tasks.apply("interpreter.Interpreter", commands)
-print(r)
+commands = ['add', 'add', 1, 2, 'mul', 3, 4]
+print(local_tasks.apply("interpreter.Interpreter", commands)[0])

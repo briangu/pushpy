@@ -225,23 +225,23 @@ class PushLoader(_Loader):
         try:
             print(f"exec_module: {module.__name__}")
 
-            p = module.__name__.split(".")
-            name = ".".join(p[1:])
+            # p = module.__name__.split(".")
+            # name = ".".join(p[1:])
 
-            if name in self.store:
-                # import traceback
-                # traceback.print_stack()
-                print(f"code: {name}")
-                c = dill.loads(self.store[name])
-                module.__dict__[name] = c
-                module.__dict__[p[-1]] = c
-                module.code = c
-            else:
-                module.__dict__[module.__name__] = module
-                for key in self.store.keys():
-                    p = key.split('.')
-                    module.__dict__[p[0]] = module
-                    module.__dict__[p[-1]] = dill.loads(self.store[key])
+            # if name in self.store:
+            #     # import traceback
+            #     # traceback.print_stack()
+            #     print(f"code: {name}")
+            #     c = dill.loads(self.store[name])
+            #     module.__dict__[name] = c
+            #     module.__dict__[p[-1]] = c
+            #     module.code = c
+            # else:
+            module.__dict__[module.__name__] = module
+            for key in self.store.keys():
+                p = key.split('.')
+                module.__dict__[p[0]] = module
+                module.__dict__[p[-1]] = dill.loads(self.store[key])
             # exec(, module.__dict__)
             # module.__package__ = "repl_code_store"
             # module.code = c
@@ -250,24 +250,6 @@ class PushLoader(_Loader):
             import traceback
             traceback.print_exc()
             print(f"failed to load: {e}")
-    #     # with open(module.__name__) as input_file:
-    #         # input_text = '\n'.join(input_file.readlines())
-    #         # compile_module(module, input_text)
-    #     module.code = None
-    #     return module
-
-    # def load_module(self, fullname):
-    #     print(f"loading: {fullname}")
-    #     # mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
-    #     mod = types.ModuleType(fullname)
-    #     # sys.modules[name] = mod
-    #     # s = compile_source(src)
-    #     # exec(s, mod.__dict__)
-    #     mod.__loader__ = self
-    #     mod.__package__ = fullname
-    #     mod.__file__ = fullname
-    #     mod.__path__ = []
-    #     return mod
 
 
 class PushFinder(_MetaPathFinder):
