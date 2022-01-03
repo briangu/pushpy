@@ -225,27 +225,11 @@ class PushLoader(_Loader):
         try:
             print(f"exec_module: {module.__name__}")
 
-            # p = module.__name__.split(".")
-            # name = ".".join(p[1:])
-
-            # if name in self.store:
-            #     # import traceback
-            #     # traceback.print_stack()
-            #     print(f"code: {name}")
-            #     c = dill.loads(self.store[name])
-            #     module.__dict__[name] = c
-            #     module.__dict__[p[-1]] = c
-            #     module.code = c
-            # else:
             module.__dict__[module.__name__] = module
             for key in self.store.keys():
                 p = key.split('.')
                 module.__dict__[p[0]] = module
                 module.__dict__[p[-1]] = dill.loads(self.store[key])
-            # exec(, module.__dict__)
-            # module.__package__ = "repl_code_store"
-            # module.code = c
-            # return module
         except Exception as e:
             import traceback
             traceback.print_exc()

@@ -20,8 +20,7 @@ class Adder:
 
 class Interpreter:
     def apply(self, ops, i = None):
-        from repl_code_store.interpreter import Adder, Multiplier
-        print(ops, i)
+        from repl_code_store.interpreter.math import Adder, Multiplier
         i = 0 if i is None else i
         while i < len(ops):
             op = ops[i]
@@ -44,8 +43,8 @@ local_tasks = m.local_tasks()
 repl_code_store = m.repl_code_store()
 repl_code_store.update({
     "interpreter.Interpreter": dill.dumps(Interpreter),
-    "interpreter.Adder": dill.dumps(Adder),
-    "interpreter.Multiplier": dill.dumps(Multiplier)
+    "interpreter.math.Adder": dill.dumps(Adder),
+    "interpreter.math.Multiplier": dill.dumps(Multiplier)
 }, sync=True)
 
 commands = ['add', 'add', 1, 2, 'mul', 3, 4]
