@@ -9,7 +9,7 @@ from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
 from push.batteries import ReplSyncDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader
-from push.code_util import KvStoreLambda, load_src
+from push.loader import load_src, KvStoreLambda
 from push.task_manager import TaskManager
 
 
@@ -71,8 +71,8 @@ def make_app(kvstore):
 
 
 def main() -> (typing.List[object], typing.Dict[str, object]):
-    repl_kvstore = ReplSyncDict(on_set=None)
     repl_code_store = ReplVersionedDict()
+    repl_kvstore = ReplSyncDict(on_set=KvStoreLambda(repl_code_store, "process_kv_updates"))
     repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_code_store, "process_ts_updates"))
     repl_strategies = ReplList()
 

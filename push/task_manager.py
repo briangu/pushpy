@@ -1,7 +1,7 @@
 import threading
 import uuid
 
-from push.code_util import load_lambda
+from push.loader import load_lambda
 
 
 class TaskControl:

@@ -8,6 +8,7 @@ import time
 import types
 import weakref
 from collections import Mapping
+from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 from importlib.machinery import ModuleSpec
 from typing import ValuesView, ItemsView
 
@@ -17,7 +18,6 @@ import pandas as pd
 from pysyncobj import replicated, SyncObjConsumer
 from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
-from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 
 
 class ReplSyncDict(ReplDict):
