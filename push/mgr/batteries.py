@@ -208,12 +208,7 @@ class PushLoader(_Loader):
         self.store = store
 
     def create_module(self, spec):
-        print(f"creating: {spec.name}")
-        # mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
         mod = types.ModuleType(spec.name)
-        # sys.modules[name] = mod
-        # s = compile_source(src)
-        # exec(s, mod.__dict__)
         mod.__dict__['__push'] = True
         mod.__loader__ = self
         mod.__package__ = spec.name
@@ -223,13 +218,11 @@ class PushLoader(_Loader):
 
     def exec_module(self, module):
         try:
-            print(f"exec_module: {module.__name__}")
-
             module.__dict__[module.__name__] = module
+            q = module.__name__[len(self.scope)+1:]
             for key in self.store.keys():
-                p = key.split('.')
-                module.__dict__[p[0]] = module
-                module.__dict__[p[-1]] = dill.loads(self.store[key])
+                if key.startswith(q):
+                    module.__dict__[key.split('.')[-1]] = dill.loads(self.store[key])
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -245,11 +238,10 @@ class PushFinder(_MetaPathFinder):
         return self.find_spec(fullname, path)
 
     def find_spec(self, fullname, path, target=None):
-        print(f"PushFinder:Importing {fullname!r} {path!r}")
         p = fullname.split(".")
         if p[0] in self.stores:
-            print(f"found {fullname}")
-            return ModuleSpec(fullname, PushLoader(fullname, self.stores[p[0]]))
+            print(f"PushFinder:Importing {fullname!r}")
+            return ModuleSpec(fullname, PushLoader(p[0], self.stores[p[0]]))
         return None
 
 
@@ -301,11 +293,11 @@ class CodeStoreLoader:
         class DebugFinder(_MetaPathFinder):
             @classmethod
             def find_spec(cls, name, path, target=None):
-                print(f"Importing {name!r} {path!r}")
+                print(f"Importing {name!r}")
                 return None
 
         sys.meta_path.insert(0, PushFinder(stores))
-        sys.meta_path.insert(0, DebugFinder())
+        # sys.meta_path.insert(0, DebugFinder())
 
 
 class ReplTaskManager(SyncObjConsumer):
