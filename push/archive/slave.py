@@ -1,6 +1,6 @@
 import threading
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 
 PushManager.register('get_job_queue')
 PushManager.register('get_result_queue')

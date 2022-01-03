@@ -1,6 +1,6 @@
 import multiprocessing
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 import asyncio
 import tornado.web
 import tornado.ioloop

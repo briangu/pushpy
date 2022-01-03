@@ -4,9 +4,9 @@ import time
 import dill
 import numpy as np
 
-from push.mgr.host_resources import HostRequirements, GPURequirements
-from push.mgr.push_manager import PushManager
-from push.mgr.strategy import Strategy
+from push.host_resources import HostRequirements, GPURequirements
+from push.push_manager import PushManager
+from push.examples.strategy import Strategy
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()

@@ -6,7 +6,7 @@ import threading
 import weakref
 import time
 
-sys.path.append("../")
+sys.path.append("../../")
 from pysyncobj import SyncObj, replicated, SyncObjConf
 import asyncio
 import sys

@@ -1,6 +1,6 @@
 import dill
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 import sys
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')

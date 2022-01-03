@@ -7,10 +7,10 @@ import tornado.web
 from pysyncobj import SyncObj, SyncObjConsumer
 
 from push.loader import load_in_memory_module
-from push.mgr.batteries import ReplLockDataManager
-from push.mgr.host_resources import HostResources, GPUResources, get_cluster_info
-from push.mgr.push_manager import PushManager
-from push.mgr.push_util import serve_forever
+from push.batteries import ReplLockDataManager
+from push.host_resources import HostResources, GPUResources, get_cluster_info
+from push.push_manager import PushManager
+from push.push_util import serve_forever
 
 boot_module_src = sys.argv[1]
 gpu_capabilities = sys.argv[2]

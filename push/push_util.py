@@ -1,7 +1,7 @@
 import threading
 from multiprocessing import process
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 
 
 def serve_forever(port, auth_key):

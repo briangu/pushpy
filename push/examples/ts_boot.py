@@ -8,9 +8,9 @@ import tornado.web
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from push.mgr.batteries import ReplSyncDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader
-from push.mgr.code_util import KvStoreLambda, load_src
-from push.mgr.task_manager import TaskManager
+from push.batteries import ReplSyncDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader
+from push.code_util import KvStoreLambda, load_src
+from push.task_manager import TaskManager
 
 
 class Handle404(tornado.web.RequestHandler):

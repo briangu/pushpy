@@ -3,8 +3,8 @@ import time
 
 import dill
 
-from push.mgr.push_manager import PushManager
-from push.mgr.ts_c_interpreter import Multiplier, Adder, Interpreter
+from push.push_manager import PushManager
+from push.examples.ts_c_interpreter import Multiplier, Adder, Interpreter
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()

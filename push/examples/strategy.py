@@ -1,6 +1,6 @@
 import typing
 
-from push.mgr.host_resources import HostRequirements
+from push.host_resources import HostRequirements
 
 
 class Strategy:

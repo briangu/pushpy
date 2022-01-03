@@ -1,7 +1,7 @@
 import dill
 import time
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 
 m = PushManager(address=('', 50000), authkey=b'password')
 m.connect()

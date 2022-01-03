@@ -1,7 +1,7 @@
 import random
 
 from mathenate import mathenate
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 
 import time
 

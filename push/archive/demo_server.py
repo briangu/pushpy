@@ -8,7 +8,7 @@ import dill
 from pysyncobj import SyncObj, replicated, replicated_sync
 from pysyncobj.batteries import _ReplLockManagerImpl, ReplDict, ReplQueue
 
-from push.mgr.push_manager import PushManager
+from push.push_manager import PushManager
 import psutil
 import sys
 import socket
