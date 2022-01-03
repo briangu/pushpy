@@ -33,7 +33,7 @@ def test_code(expected, key, *args, **kwargs):
 repl_code_store = m.repl_code_store()
 repl_code_store.set("batch_process", dill.dumps(BatchProcess), sync=True)
 [test_code(BatchProcess().apply(i), "batch_process", i) for i in range(2)]
-repl_code_store.set([("batch_process", dill.dumps(BatchProcess2))], sync=True)
+repl_code_store.set("batch_process", dill.dumps(BatchProcess2), sync=True)
 [test_code(BatchProcess2().apply(i), "batch_process", i) for i in range(2)]
 v = repl_code_store.get_head()
 repl_code_store.set_head(v - 1, sync=True)
@@ -74,4 +74,5 @@ assert repl_tasks.apply("my_lambda", 4) is None
 
 # TODO: can create tool that loads/saves directory path into store
 for k in repl_code_store.keys():
-    print(k, repl_code_store.get(k))
+#    print(k, repl_code_store.get(k))
+    print(k)

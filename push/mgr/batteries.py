@@ -258,9 +258,9 @@ class ReplTaskManager(SyncObjConsumer):
         self.task_manager = task_manager
         super(ReplTaskManager, self).__init__()
 
-    @replicated_sync
-    def apply_sync(self, src, *args, result_key=None, **kwargs):
-        return self.apply(src, *args, result_key=result_key, **kwargs, _doApply=True)
+    # @replicated_sync
+    # def apply_sync(self, src, *args, result_key=None, **kwargs):
+    #     return self.apply(src, *args, result_key=result_key, **kwargs, _doApply=True)
 
     # TODO: we should provide another way to store results as replicated actions would all store into the same key
     @replicated
