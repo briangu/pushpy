@@ -5,8 +5,10 @@ import os
 import socket
 import threading
 import time
+import types
 import weakref
 from collections import Mapping
+from importlib.machinery import ModuleSpec
 from typing import ValuesView, ItemsView
 
 import dill
@@ -15,6 +17,7 @@ import pandas as pd
 from pysyncobj import replicated, SyncObjConsumer
 from pysyncobj import replicated_sync
 from pysyncobj.batteries import ReplDict
+from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 
 
 class ReplSyncDict(ReplDict):
@@ -198,6 +201,94 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         pass
 
 
+class PushLoader(_Loader):
+
+    def __init__(self, scope, store):
+        self.scope = scope
+        self.store = store
+
+    def create_module(self, spec):
+        print(f"creating: {spec.name}")
+        # mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
+        mod = types.ModuleType(spec.name)
+        # sys.modules[name] = mod
+        # s = compile_source(src)
+        # exec(s, mod.__dict__)
+        mod.__dict__['__push'] = True
+        mod.__loader__ = self
+        mod.__package__ = spec.name
+        mod.__file__ = spec.name
+        mod.__path__ = []
+        return mod
+
+    def exec_module(self, module):
+        try:
+            print(f"exec_module: {module.__name__}")
+
+            p = module.__name__.split(".")
+            name = ".".join(p[1:])
+
+            if name in self.store:
+                # import traceback
+                # traceback.print_stack()
+                print(f"code: {name}")
+                c = dill.loads(self.store[name])
+                module.__dict__[name] = c
+                module.__dict__[p[-1]] = c
+                module.code = c
+            else:
+                module.__dict__[module.__name__] = module
+                for key in self.store.keys():
+                    p = key.split('.')
+                    module.__dict__[p[0]] = module
+                    module.__dict__[p[-1]] = dill.loads(self.store[key])
+            # exec(, module.__dict__)
+            # module.__package__ = "repl_code_store"
+            # module.code = c
+            # return module
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"failed to load: {e}")
+    #     # with open(module.__name__) as input_file:
+    #         # input_text = '\n'.join(input_file.readlines())
+    #         # compile_module(module, input_text)
+    #     module.code = None
+    #     return module
+
+    # def load_module(self, fullname):
+    #     print(f"loading: {fullname}")
+    #     # mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
+    #     mod = types.ModuleType(fullname)
+    #     # sys.modules[name] = mod
+    #     # s = compile_source(src)
+    #     # exec(s, mod.__dict__)
+    #     mod.__loader__ = self
+    #     mod.__package__ = fullname
+    #     mod.__file__ = fullname
+    #     mod.__path__ = []
+    #     return mod
+
+
+class PushFinder(_MetaPathFinder):
+
+    def __init__(self, stores):
+        self.stores = stores
+
+    def find_module(self, fullname, path):
+        return self.find_spec(fullname, path)
+
+    def find_spec(self, fullname, path, target=None):
+        print(f"PushFinder:Importing {fullname!r} {path!r}")
+        p = fullname.split(".")
+        if p[0] in self.stores:
+            print(f"found {fullname}")
+            return ModuleSpec(fullname, PushLoader(fullname, self.stores[p[0]]))
+        return None
+
+
+# useful helpers:
+# https://bayesianbrad.github.io/posts/2017_loader-finder-python.html
 # https://realpython.com/python-import/
 # https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using
 class CodeStoreLoader:
@@ -237,18 +328,18 @@ class CodeStoreLoader:
     def load_dir(store, path):
         pass
 
-    # https://realpython.com/python-import/
     @staticmethod
-    def install_importer(store):
+    def install_importer(stores):
         import sys
 
-        class DebugFinder:
+        class DebugFinder(_MetaPathFinder):
             @classmethod
             def find_spec(cls, name, path, target=None):
                 print(f"Importing {name!r} {path!r}")
                 return None
 
-        sys.meta_path.insert(0, DebugFinder)
+        sys.meta_path.insert(0, PushFinder(stores))
+        sys.meta_path.insert(0, DebugFinder())
 
 
 class ReplTaskManager(SyncObjConsumer):

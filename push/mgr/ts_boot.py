@@ -88,6 +88,6 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     m_globals['repl_strategies'] = repl_strategies
     # m_globals['m_register'] = DoRegister(repl_kvstore)
 
-    CodeStoreLoader.install_importer(repl_code_store)
+    CodeStoreLoader.install_importer({'repl_code_store': repl_code_store})
 
     return m_globals, make_app(repl_code_store)
