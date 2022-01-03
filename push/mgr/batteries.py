@@ -262,13 +262,11 @@ class ReplTaskManager(SyncObjConsumer):
     def apply_sync(self, src, *args, result_key=None, **kwargs):
         return self.apply(src, *args, result_key=result_key, **kwargs, _doApply=True)
 
+    # TODO: we should provide another way to store results as replicated actions would all store into the same key
     @replicated
-    def apply(self, src, *args, result_key=None, **kwargs):
+    def apply(self, src, *args, **kwargs):
         ctx = self.kvstore.rawData().copy()
-        r = self.task_manager.run("lambda", src, *args, ctx=ctx, **kwargs)
-        if result_key is not None:
-            self.kvstore.set(result_key, r)
-        return r
+        return self.task_manager.run("lambda", src, *args, ctx=ctx, **kwargs)
 
 
 class ReplTimeseries(SyncObjConsumer):
