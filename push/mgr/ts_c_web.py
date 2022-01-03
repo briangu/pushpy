@@ -41,5 +41,5 @@ class HelloWorldHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-repl_code_store.commit("/web/kv", dill.dumps(HelloHandler))
-repl_code_store.commit("/web/", dill.dumps(HelloWorldHandler))
+repl_code_store.set("/web/kv", dill.dumps(HelloHandler))
+repl_code_store.set("/web/", dill.dumps(HelloWorldHandler))

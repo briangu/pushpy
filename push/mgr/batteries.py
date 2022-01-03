@@ -34,97 +34,6 @@ class ReplSyncDict(ReplDict):
             self.on_set(key, value)
 
 
-# # TODO: scan repl_obj for all methods and add to this, proxying all replicated operations to parent
-# class _ReplDynamicProxy:
-#     def __init__(self, parent, name, repl_obj):
-#         self.parent = parent
-#         self.name = name
-#         self.repl_obj = repl_obj
-#
-#     def apply(self, method, *args, **kwargs):
-#         return self.parent.apply(self.name, method, *args, **kwargs)
-#
-#
-# # usage: this will be the base repl data structure for a Push server
-# #       it supports adding new / removing named sub-consumers as a replicated action
-# #       it supports operating on added sub-consumers as a replicated action
-# class ReplDynamicConsumer(SyncObjConsumer):
-#     def __init__(self):
-#         super(ReplDynamicConsumer, self).__init__()
-#         self.__properties = set()
-#         for key in self.__dict__:
-#             self.__properties.add(key)
-#         self.__data = {}
-#
-#     def obj_from_type(self, repl_type):
-#         if repl_type == "list":
-#             obj = ReplList()
-#         elif repl_type == "dict":
-#             obj = ReplDict()
-#         elif repl_type == "ts":
-#             obj = ReplTimeseries()
-#         else:
-#             raise RuntimeError(f"unknown type: {repl_type}")
-#         obj._syncObj = self
-#         return obj
-#
-#     @replicated
-#     def add(self, name, repl_type):
-#         if name in self.__data:
-#             raise RuntimeError(f"name already present: {name}")
-#         self.__data[name] = {'type': repl_type, 'obj': self.obj_from_type(repl_type)}
-#
-#     @replicated
-#     def remove(self, name):
-#         self.__delitem__(name, _doApply=True)
-#
-#     @replicated
-#     def __delitem__(self, name):
-#         if name in self.__data:
-#             del self.__data[name]
-#
-#     @replicated
-#     def apply(self, name, method, *args, **kwargs):
-#         if name not in self.__data:
-#             raise RuntimeError(f"name already present: {name}")
-#         d = self.__data[name]['obj']
-#         if not hasattr(d, method):
-#             raise RuntimeError(f"method not found: {name} {method}")
-#         return getattr(d, method)(*args, **kwargs)
-#
-#     def __getitem__(self, name):
-#         repl_obj = self.__data.get(name)['obj']
-#         return _ReplDynamicProxy(self, name, repl_obj) if repl_obj is not None else None
-#
-#     def _serialize(self):
-#         d = dict()
-#         for k, v in [(k, v) for k, v in iteritems(self.__dict__) if k not in self.__properties]:
-#             if k.endswith("__data") and isinstance(v, dict):
-#                 _d = dict()
-#                 for _k, _v in iteritems(v):
-#                     __d = dict()
-#                     __d['type'] = _v['type']
-#                     __d['obj'] = _v['obj']._serialize()
-#                     _d[_k] = __d
-#                 v = _d
-#             d[k] = v
-#         return d
-#
-#     # TODO: recurse into subconsumers
-#     def _deserialize(self, data):
-#         for k, v in iteritems(data):
-#             if k.endswith("__data") and isinstance(v, dict):
-#                 _d = dict()
-#                 for _k, _v in iteritems(v):
-#                     __d = dict()
-#                     __d['type'] = _v['type']
-#                     obj = self.obj_from_type(_v['type'])
-#                     obj._deserialize(_v['obj'])
-#                     __d['obj'] = obj
-#                     _d[_k] = __d
-#                 v = _d
-#             self.__dict__[k] = v
-
 #
 # Replicated Code Store with versioning
 #   ex usage:
@@ -146,7 +55,7 @@ class ReplSyncDict(ReplDict):
 #   obj['/']
 #   obj.get("/")
 
-
+# TODO: grab a lock for commit transaction otherwise a seperate process can
 class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     def __init__(self):
@@ -155,14 +64,7 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         self.__references = {}
         self.__version = None
         self.__head = None
-        self.__in_transaction = False
-        self.__len_cache = None
-
-    def __enter__(self):
-        self.inc_version_sync()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.commit()
+        self.__len_cache = {}
 
     def __getitem__(self, k):
         x = self.get(k)
@@ -172,16 +74,17 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     def __len__(self):
         version = self.get_head()
-        if self.__len_cache is not None and self.__len_cache[0] == version:
-            return self.__len_cache[1]
+        if version in self.__len_cache:
+            return self.__len_cache[version]
         x = sum([1 for arr in self.__references.values() if self.__floor_to_version(arr, version) is not None])
-        self.__len_cache = (version, x)
+        self.__len_cache[version] = x
         return x
 
     # https://docs.python.org/3/reference/datamodel.html#object.__iter__
     def __iter__(self):
         return self.keys()
 
+    # TODO: create ItemsView
     def items(self) -> ItemsView:
         version = self.get_head()
         for key, arr in self.__references.items():
@@ -189,6 +92,7 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
             if v is not None:
                 yield key, self.__get_obj(v)
 
+    # TODO: create ValuesView
     def values(self) -> ValuesView:
         version = self.get_head()
         for key, arr in self.__references.items():
@@ -200,12 +104,13 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         return self.get(o) is not None
 
     @replicated
+    def delete(self, key):
+        self.__delitem__(key, _doApply=True)
+
+    @replicated
     def __delitem__(self, key):
-        # TODO: put a tombstone into the end of the array so that it's ignored in __floor_to_version
-        # does this do a commit?
-        # if not self.__in_transaction:
-        #     raise RuntimeError("no transaction in progress")
-        pass
+        # put a tombstone into the end of the array so that it's ignored in __floor_to_version
+        self.set(key, None, _doApply=True)
 
     # https://stackoverflow.com/questions/42366856/keysview-valuesview-and-itemsview-default-representation-of-a-mapping-subclass
     # TODO: impelement KeysView so it works over BaseManager
@@ -234,32 +139,12 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         obj = self.__objects.get(key)
         return dill.loads(obj) if obj is not None else None
 
-    def in_transaction(self):
-        return self.__in_transaction
-
-    # TODO: specify requirements and dependent data keys (from data space)
-    @replicated_sync
-    def set_sync(self, key, value):
-        self.set(key, value, _doApply=True)
-
-    @replicated_sync
-    def inc_version_sync(self):
-        self.inc_version(_doApply=True)
-
-    @replicated
-    def inc_version(self):
-        if self.__in_transaction:
-            raise RuntimeError("transaction already in progress")
+    def __inc_version(self):
         self.__version = 0 if self.__version is None else self.__version + 1
-        self.__in_transaction = True
         return self.__version
 
     def get_max_version(self):
         return self.__version
-
-    @replicated_sync
-    def set_head_sync(self, version=None):
-        self.set_head(version=version, _doApply=True)
 
     @replicated
     def set_head(self, version=None):
@@ -272,23 +157,11 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     def get_head(self):
         return self.__head or self.__version
 
-    @replicated_sync
-    def commit_sync(self, *args):
-        self.commit(*args, _doApply=True)
-
-    # TODO: add support for comment?
     @replicated
-    def commit(self, *args):
-        if len(args) > 0:
-            if self.__in_transaction:
-                raise RuntimeError("transaction already in progress")
-            self.inc_version(_doApply=True)
-            items = [args[0]] if isinstance(args[0], tuple) else args[0] if len(args) == 1 else [tuple(args[:2])]
-            for key, value in items:
-                self.set(key, value, _doApply=True)
-        elif not self.__in_transaction:
-            raise RuntimeError("no transaction in progress")
-        self.__in_transaction = False
+    def update(self, other):
+        self.__inc_version()
+        for k in other:
+            self.__set(k, other[k])
         self.set_head(version=None, _doApply=True)
 
     @staticmethod
@@ -308,20 +181,21 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
                 return self.__get_obj(v)
         return None
 
-    @replicated_sync
-    def set_sync(self, key, value):
-        self.set(key, value, _doApply=True)
-
-    @replicated
-    def set(self, key, value):
-        if not self.__in_transaction:
-            raise RuntimeError("no transaction in progress")
+    def __set(self, key, value):
         obj_key = self.__store_obj(value) if value is not None else None
         arr = self.__references.get(key)
         if arr is None:
             arr = []
         arr.append((self.__version, obj_key))
         self.__references[key] = arr
+
+    @replicated
+    def set(self, key, value):
+        self.update({key: value}, _doApply=True)
+
+    @replicated
+    def flatten(self):
+        pass
 
 
 # https://realpython.com/python-import/
@@ -363,6 +237,7 @@ class CodeStoreLoader:
     def load_dir(store, path):
         pass
 
+    # https://realpython.com/python-import/
     @staticmethod
     def install_importer(store):
         import sys
@@ -604,3 +479,94 @@ class ReplLockDataManager(object):
         :type timeout: float
         """
         self.__lockImpl.release(lockID, self.__selfID, callback=callback, sync=sync, timeout=timeout)
+
+# # TODO: scan repl_obj for all methods and add to this, proxying all replicated operations to parent
+# class _ReplDynamicProxy:
+#     def __init__(self, parent, name, repl_obj):
+#         self.parent = parent
+#         self.name = name
+#         self.repl_obj = repl_obj
+#
+#     def apply(self, method, *args, **kwargs):
+#         return self.parent.apply(self.name, method, *args, **kwargs)
+#
+#
+# # usage: this will be the base repl data structure for a Push server
+# #       it supports adding new / removing named sub-consumers as a replicated action
+# #       it supports operating on added sub-consumers as a replicated action
+# class ReplDynamicConsumer(SyncObjConsumer):
+#     def __init__(self):
+#         super(ReplDynamicConsumer, self).__init__()
+#         self.__properties = set()
+#         for key in self.__dict__:
+#             self.__properties.add(key)
+#         self.__data = {}
+#
+#     def obj_from_type(self, repl_type):
+#         if repl_type == "list":
+#             obj = ReplList()
+#         elif repl_type == "dict":
+#             obj = ReplDict()
+#         elif repl_type == "ts":
+#             obj = ReplTimeseries()
+#         else:
+#             raise RuntimeError(f"unknown type: {repl_type}")
+#         obj._syncObj = self
+#         return obj
+#
+#     @replicated
+#     def add(self, name, repl_type):
+#         if name in self.__data:
+#             raise RuntimeError(f"name already present: {name}")
+#         self.__data[name] = {'type': repl_type, 'obj': self.obj_from_type(repl_type)}
+#
+#     @replicated
+#     def remove(self, name):
+#         self.__delitem__(name, _doApply=True)
+#
+#     @replicated
+#     def __delitem__(self, name):
+#         if name in self.__data:
+#             del self.__data[name]
+#
+#     @replicated
+#     def apply(self, name, method, *args, **kwargs):
+#         if name not in self.__data:
+#             raise RuntimeError(f"name already present: {name}")
+#         d = self.__data[name]['obj']
+#         if not hasattr(d, method):
+#             raise RuntimeError(f"method not found: {name} {method}")
+#         return getattr(d, method)(*args, **kwargs)
+#
+#     def __getitem__(self, name):
+#         repl_obj = self.__data.get(name)['obj']
+#         return _ReplDynamicProxy(self, name, repl_obj) if repl_obj is not None else None
+#
+#     def _serialize(self):
+#         d = dict()
+#         for k, v in [(k, v) for k, v in iteritems(self.__dict__) if k not in self.__properties]:
+#             if k.endswith("__data") and isinstance(v, dict):
+#                 _d = dict()
+#                 for _k, _v in iteritems(v):
+#                     __d = dict()
+#                     __d['type'] = _v['type']
+#                     __d['obj'] = _v['obj']._serialize()
+#                     _d[_k] = __d
+#                 v = _d
+#             d[k] = v
+#         return d
+#
+#     # TODO: recurse into subconsumers
+#     def _deserialize(self, data):
+#         for k, v in iteritems(data):
+#             if k.endswith("__data") and isinstance(v, dict):
+#                 _d = dict()
+#                 for _k, _v in iteritems(v):
+#                     __d = dict()
+#                     __d['type'] = _v['type']
+#                     obj = self.obj_from_type(_v['type'])
+#                     obj._deserialize(_v['obj'])
+#                     __d['obj'] = obj
+#                     _d[_k] = __d
+#                 v = _d
+#             self.__dict__[k] = v
