@@ -70,4 +70,5 @@ dt = m.local_tasks()
 dt.stop("mat")
 dt.run("daemon", src="kvstore:my_adder_task", name="mat")
 
-time.sleep(300)
+time.sleep(30)
+dt.stop("mat")

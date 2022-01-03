@@ -11,9 +11,47 @@ m.connect()
 
 repl_code_store = m.repl_code_store()
 
+class Multiplier:
+    def apply(self, a, b):
+        return a * b
+
+
+class Adder:
+    def apply(self, a, b):
+        return a + b
+
+
+class Interpreter:
+    def apply(self, ops, i = None):
+        from repl_code_store.interpreter.math import Adder, Multiplier
+        i = 0 if i is None else i
+        while i < len(ops):
+            op = ops[i]
+            i += 1
+            if op == "add":
+                a, i = self.apply(ops, i)
+                b, i = self.apply(ops, i)
+                return Adder().apply(a, b), i
+            elif op == "mul":
+                a, i = self.apply(ops, i)
+                b, i = self.apply(ops, i)
+                return Multiplier().apply(a, b), i
+            else:
+                return op, i
+
+
+repl_tasks = m.repl_tasks()
+local_tasks = m.local_tasks()
+
+repl_code_store.update({
+    "interpreter.Interpreter": dill.dumps(Interpreter),
+    "interpreter.math.Adder": dill.dumps(Adder),
+    "interpreter.math.Multiplier": dill.dumps(Multiplier)
+}, sync=True)
 
 # curl -X PUT -d'{"k":"my_key", "v":"my_value"}' -H 'Content-Type: application/json' localhost:11000/kv
 # curl localhost:11000/kv?k=my_key
+# curl -X POST -d'["add", "add", 1, 2, "mul", 3, 4]' -H 'Content-Type: application/json' localhost:11000/math
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
         print(self.request.arguments)
@@ -41,5 +79,15 @@ class HelloWorldHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class MathHandler(tornado.web.RequestHandler):
+    def post(self):
+        import json
+        ops = json.loads(self.request.body.decode("utf-8"))
+        r = local_tasks.apply("interpreter.Interpreter", ops)[0]
+        self.write(str(r))
+        self.finish()
+
+
+repl_code_store.set("/web/math", dill.dumps(MathHandler))
 repl_code_store.set("/web/kv", dill.dumps(HelloHandler))
 repl_code_store.set("/web/", dill.dumps(HelloWorldHandler))
