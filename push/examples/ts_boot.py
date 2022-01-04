@@ -72,35 +72,16 @@ def make_app(kvstore):
 
 
 def main() -> (typing.List[object], typing.Dict[str, object]):
-    queue = Queue()
-
-    def on_event_daemon(control, handle_map):
-        while control.running:
-            try:
-                s, *a = queue.get(timeout=0.1)
-                if s in handle_map:
-                    handle_map[s].apply(*a)
-            except Empty:
-                pass
-
     repl_code_store = ReplVersionedDict()
 
-    handle_map = {
-        'kvstore': KvStoreLambda(repl_code_store, "process_kv_updates"),
-        'ts': KvStoreLambda(repl_code_store, "process_ts_updates")
-    }
+    tm = TaskManager(repl_code_store)
 
-    def on_event_provider(s):
-        def on_event(*args):
-            queue.put((s, *args))
-        return on_event
-
-    repl_kvstore = ReplSyncDict(on_set=on_event_provider('kvstore'))
-    repl_ts = ReplTimeseries(on_append=on_event_provider('ts'))
+    repl_kvstore = ReplSyncDict(on_set=tm.on_event_handler("process_kv_updates"))
+    repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
     repl_strategies = ReplList()
 
-    tm = TaskManager(repl_code_store)
-    tm.start_daemon(on_event_daemon, handle_map)
+    # tm.start_daemon(on_event_daemon, event_handler_map)
+    tm.start_event_handlers()
 
     repl_task_manager = ReplTaskManager(repl_kvstore, tm)
 

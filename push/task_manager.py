@@ -1,7 +1,8 @@
 import threading
 import uuid
+from queue import Queue, Empty
 
-from push.loader import load_lambda
+from push.loader import load_lambda, KvStoreLambda
 
 
 class TaskControl:
@@ -14,12 +15,35 @@ class TaskContext:
         self.thread = thread
 
 
+# TODO: add ability to store result of code store lambda in kvstore
 class TaskManager:
-    task_threads = dict()
 
-    # TODO: add ability to store result of code store lambda in kvstore
     def __init__(self, code_store):
         self.code_store = code_store
+        self.task_threads = dict()
+        self.queue = Queue()
+        self.event_handler_map = {}
+
+    def on_event_daemon(self, control, handle_map):
+        while control.running:
+            try:
+                s, *a = self.queue.get(timeout=0.1)
+                if s in handle_map:
+                    handle_map[s].apply(*a)
+            except Empty:
+                pass
+
+    def on_event_handler(self, lambda_name, name=None):
+        name = name or str(uuid.uuid4())
+        self.event_handler_map[name] = KvStoreLambda(self.code_store, lambda_name)
+
+        def on_event(*args):
+            self.queue.put((name, *args))
+
+        return on_event
+
+    def start_event_handlers(self):
+        self.start_daemon(self.on_event_daemon, self.event_handler_map)
 
     # TODO: do we need context?
     def apply(self, src, *args, ctx=None, **kwargs):
@@ -69,4 +93,3 @@ class TaskManager:
             self.start_daemon(src, *args, ctx=ctx, **kwargs)
         elif task_type == "lambda":
             return self.apply(src, *args, ctx=ctx, **kwargs)
-
