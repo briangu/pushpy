@@ -80,7 +80,6 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
     repl_strategies = ReplList()
 
-    # tm.start_daemon(on_event_daemon, event_handler_map)
     tm.start_event_handlers()
 
     repl_task_manager = ReplTaskManager(repl_kvstore, tm)
