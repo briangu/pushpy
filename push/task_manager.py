@@ -21,31 +21,39 @@ class TaskManager:
     def __init__(self, code_store):
         self.code_store = code_store
 
+    # TODO: do we need context?
     def apply(self, src, *args, ctx=None, **kwargs):
         src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
         src = load_lambda(self.code_store, src)
         if src is not None:
-            ctx = ctx.copy() if ctx is not None else {}
-            ctx.update({'src': src, 'args': args, 'kwargs': kwargs})
-            # TOOD: support lambda requirements
-            # exec('import math', ctx)
+            # ctx = ctx.copy() if ctx is not None else {}
+            # ctx.update({'src': src, 'args': args, 'kwargs': kwargs})
+            # # TOOD: support lambda requirements
+            # # exec('import math', ctx)
+            # try:
+            #     exec(f"__r = src(*args, **kwargs)", ctx)
+            #     return ctx['__r']
+            # except Exception as e:
+            #     print(e)
+            #     return e
             try:
-                exec(f"__r = src(*args, **kwargs)", ctx)
-                return ctx['__r']
+                return src(*args, **kwargs)
             except Exception as e:
                 print(e)
                 return e
         return None
 
+    # TODO: pass args, kwargs to task thread
+    # TODO: construct a task runtime context based on ctx
     def start_daemon(self, src, *args, ctx=None, **kwargs):
-        name = kwargs.get("name")
+        name = kwargs.pop("name", None)
         name = name or str(uuid.uuid4())
         if name in self.task_threads:
             raise RuntimeError(f"task already running: {name}")
         src = load_lambda(self.code_store, src)
         task_control = TaskControl()
         task_context = TaskContext(task_control,
-                                   threading.Thread(target=src, args=(task_control,)))
+                                   threading.Thread(target=src, daemon=True, args=(task_control, *args)))
         task_context.thread.start()
         self.task_threads[name] = task_context
 

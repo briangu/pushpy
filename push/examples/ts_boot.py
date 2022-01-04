@@ -1,4 +1,5 @@
 import typing
+from queue import Queue, Empty
 
 import tornado.gen
 import tornado.httpserver
@@ -21,14 +22,14 @@ class Handle404(tornado.web.RequestHandler):
 
 # https://stackoverflow.com/questions/47970574/tornado-routing-to-a-base-handler
 class MyRouter(Router):
-    def __init__(self, kvstore, app, prefix=None):
-        self.kvstore = kvstore
+    def __init__(self, store, app, prefix=None):
+        self.store = store
         self.app = app
         self.prefix = f"kvstore:{prefix or '/web'}"
 
     def find_handler(self, request, **kwargs):
         try:
-            handler = load_src(self.kvstore, f"{self.prefix}{request.path}") or Handle404
+            handler = load_src(self.store, f"{self.prefix}{request.path}") or Handle404
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -71,12 +72,36 @@ def make_app(kvstore):
 
 
 def main() -> (typing.List[object], typing.Dict[str, object]):
+    queue = Queue()
+
+    def on_event_daemon(control, handle_map):
+        while control.running:
+            try:
+                s, *a = queue.get(timeout=0.1)
+                if s in handle_map:
+                    handle_map[s].apply(*a)
+            except Empty:
+                pass
+
     repl_code_store = ReplVersionedDict()
-    repl_kvstore = ReplSyncDict(on_set=KvStoreLambda(repl_code_store, "process_kv_updates"))
-    repl_ts = ReplTimeseries(on_append=KvStoreLambda(repl_code_store, "process_ts_updates"))
+
+    handle_map = {
+        'kvstore': KvStoreLambda(repl_code_store, "process_kv_updates"),
+        'ts': KvStoreLambda(repl_code_store, "process_ts_updates")
+    }
+
+    def on_event_provider(s):
+        def on_event(*args):
+            queue.put((s, *args))
+        return on_event
+
+    repl_kvstore = ReplSyncDict(on_set=on_event_provider('kvstore'))
+    repl_ts = ReplTimeseries(on_append=on_event_provider('ts'))
     repl_strategies = ReplList()
 
     tm = TaskManager(repl_code_store)
+    tm.start_daemon(on_event_daemon, handle_map)
+
     repl_task_manager = ReplTaskManager(repl_kvstore, tm)
 
     m_globals = dict()

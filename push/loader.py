@@ -170,10 +170,11 @@ def load_src(kvstore, src):
                 return None
             src = dill.loads(src)
         else:
+            # TODO: should we attempt dill.loads here?
             # TODO: what do we with do a URI src?
             # src = compile_source(src)
             return None
-    else:
+    elif isinstance(src, bytes):
         src = dill.loads(src)
     return src
 
