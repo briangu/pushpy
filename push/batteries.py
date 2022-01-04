@@ -246,6 +246,8 @@ class PushFinder(_MetaPathFinder):
 
 
 # useful helpers:
+# https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
+# https://realpython.com/python-import/#finders-and-loaders
 # https://bayesianbrad.github.io/posts/2017_loader-finder-python.html
 # https://realpython.com/python-import/
 # https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using

@@ -16,3 +16,4 @@ websocket~=0.2.1
 gevent~=21.12.0
 GPUtil~=1.4.0
 lock~=2018.3.25.2110
+schedule
