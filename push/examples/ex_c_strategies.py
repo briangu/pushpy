@@ -8,7 +8,6 @@ from push.examples.data_generator import DataGeneratorTask
 from push.host_resources import HostRequirements, GPURequirements
 from push.push_manager import PushManager
 from push.examples.strategy import Strategy
-from repl_common import get_cluster_info
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
