@@ -55,8 +55,9 @@ def main():
     mod.__dict__['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
 
     print(f"registering host: {sync_obj.selfNode.id}")
+    sync_obj.waitReady()
     while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=True):
-        print(f"waiting...")
+        print(f"connecting to cluster...")
         time.sleep(0.1)
 
     # <<< setup sync obj

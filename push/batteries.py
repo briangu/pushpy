@@ -214,7 +214,7 @@ class PushLoader(_Loader):
     def exec_module(self, module):
         try:
             module.__dict__[module.__name__] = module
-            q = module.__name__[len(self.scope)+1:]
+            q = module.__name__[len(self.scope) + 1:]
             for key in self.store.keys():
                 if key.startswith(q):
                     module.__dict__[key.split('.')[-1]] = dill.loads(self.store[key])
@@ -342,6 +342,7 @@ class ReplTimeseries(SyncObjConsumer):
         for key in keys:
             df[key] = np.concatenate(self.__data[key])
         return df
+
 
 # Similar to _ReplLockManagerImpl but supports data bound to the lock
 # TODO: can this be done with a lock and the dict?
@@ -520,4 +521,3 @@ class ReplLockDataManager(object):
         :type timeout: float
         """
         self.__lockImpl.release(lockID, self.__selfID, callback=callback, sync=sync, timeout=timeout)
-
