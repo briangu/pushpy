@@ -10,8 +10,7 @@ def serve_forever(port, auth_key):
     mgmt_server.stop_event = threading.Event()
     process.current_process()._manager_server = mgmt_server
     try:
-        accepter = threading.Thread(target=mgmt_server.accepter)
-        accepter.daemon = True
+        accepter = threading.Thread(target=mgmt_server.accepter, daemon=True)
         accepter.start()
         return m, accepter
     except Exception as e:
