@@ -182,8 +182,14 @@ def load_src(kvstore, src):
 def load_lambda(kvstore, src):
     src = load_src(kvstore, src)
     if isinstance(src, type):
-        src = src()
-        src = src.apply if hasattr(src, 'apply') else src
+        try:
+            globals()['repl_ts'] = object
+            src = src()
+            src = src.apply if hasattr(src, 'apply') else src
+        except Exception as e:
+            print("here!")
+            print(e)
+            raise e
     return src
 
 
@@ -200,4 +206,7 @@ class KvStoreLambda:
     def apply(self, *args, **kwargs):
         src = load_src(self.kvstore, self.key)
         if src is not None:
-            src(*args, **kwargs)
+            try:
+                src(*args, **kwargs)
+            except Exception as e:
+                print(e)

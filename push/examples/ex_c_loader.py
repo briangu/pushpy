@@ -4,11 +4,10 @@ import time
 import dill
 
 from push.push_manager import PushManager
-from push.examples.ts_c_interpreter import Multiplier, Adder, Interpreter
+from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
-
 
 repl_tasks = m.repl_tasks()
 local_tasks = m.local_tasks()
@@ -35,6 +34,7 @@ class AdderTask:
             commands = ['add', 'add', random.randint(0, 10), random.randint(0, 10), 'mul', random.randint(0, 10), random.randint(0, 10)]
             print(local_tasks.apply("interpreter.Interpreter", commands)[0])
             time.sleep(1)
+
 
 repl_code_store.set("my_adder_task", dill.dumps(AdderTask), sync=True)
 

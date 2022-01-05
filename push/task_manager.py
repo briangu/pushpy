@@ -24,6 +24,13 @@ class TaskManager:
         self.queue = Queue()
         self.event_handler_map = {}
 
+    def clear_events(self):
+        while not self.queue.empty():
+            try:
+                self.queue.get_nowait()
+            except Empty:
+                pass
+
     def on_event_daemon(self, control, handle_map):
         while control.running:
             try:

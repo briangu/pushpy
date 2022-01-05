@@ -299,7 +299,7 @@ class CodeStoreLoader:
                 return None
 
         sys.meta_path.insert(0, PushFinder(stores))
-        # sys.meta_path.insert(0, DebugFinder())
+        sys.meta_path.insert(0, DebugFinder())
 
 
 class ReplTaskManager(SyncObjConsumer):

@@ -4,7 +4,7 @@ import dill
 import tornado.web
 
 from push.push_manager import PushManager
-from push.examples.ts_c_interpreter import Multiplier, Adder, Interpreter
+from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()

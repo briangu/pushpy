@@ -24,7 +24,7 @@ repl_tasks = m.repl_tasks()
 local_tasks = m.local_tasks()
 
 def test_code(expected, key, *args, **kwargs):
-    assert expected == repl_tasks.apply_sync(key, *args, **kwargs)
+    assert expected == repl_tasks.apply(key, *args, **kwargs, sync=True)
     assert expected == local_tasks.apply(key, *args, **kwargs)
 
 
