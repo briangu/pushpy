@@ -72,7 +72,6 @@ class TaskManager:
                 try:
                     if callable(src):
                         return src(*args, **kwargs)
-                    print("running eval")
                     ctx = globals().copy()
                     exec("from boot_common import *", ctx)
                     return eval(src, ctx)

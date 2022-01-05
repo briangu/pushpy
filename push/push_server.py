@@ -17,10 +17,11 @@ def main():
     gpu_capabilities = sys.argv[2]
     selfAddr = sys.argv[3]
     base_port = int(selfAddr.split(":")[1])
+    mgr_port = (base_port % 1000) + 50000
     partners = sys.argv[4:]
 
     # fake GPU for testing
-    host_resources = HostResources.create()
+    host_resources = HostResources.create(mgr_port=mgr_port)
     host_resources.gpu = GPUResources(count=1 if 'GPU' in gpu_capabilities else 0)
 
     class DoRegistry:
@@ -52,16 +53,18 @@ def main():
     globals()['repl_hosts'] = repl_hosts
     globals()['get_cluster_info'] = l_get_cluster_info
     globals()['get_partition_info'] = l_get_partition_info
-    # globals()['host_resources'] = host_resources
+    globals()['host_resources'] = host_resources
 
     # update the boot_common module with host info
     mod = sys.modules['boot_common']
     mod.__dict__['repl_hosts'] = repl_hosts
     mod.__dict__['get_cluster_info'] = l_get_cluster_info
     mod.__dict__['get_partition_info'] = l_get_partition_info
+    mod.__dict__['host_resources'] = host_resources
 
     PushManager.register("get_cluster_info", callable=lambda: l_get_cluster_info)
     PushManager.register("get_partition_info", callable=lambda: l_get_partition_info)
+    PushManager.register("host_resources", callable=lambda: host_resources)
 
     print(f"registering host: {sync_obj.selfNode.id}")
     sync_obj.waitReady()
@@ -77,8 +80,7 @@ def main():
         print(f"starting webserver @ {web_port}")
         webserver.listen(web_port)
 
-    mgr_port = (base_port % 1000) + 50000
-    m, mt = serve_forever(mgr_port, b'password')
+    serve_forever(mgr_port, b'password')
 
     # tornado.ioloop.IOLoop.current().start()
     loop = asyncio.get_event_loop()

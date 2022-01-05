@@ -30,6 +30,8 @@ def host_exec_cmd(dt, cmd):
 
 def hello_cmd(cmd):
     cmd = cmd[1:]
+    if cmd == "host" or cmd == "host_resources":
+        cmd = "host_resources"
     return cmd
 
 
@@ -57,7 +59,8 @@ async def sac_cmd(cmd):
     elif cmd == "hosts":
         m = connect_to_host(default_host)
         dt = m.local_tasks()
-        r = host_exec_cmd(dt, "get_cluster_info().keys()")
+        # r = host_exec_cmd(dt, "{k: v.mgr for k, v in get_cluster_info().items()}")
+        r = host_exec_cmd(dt, "[k.split(':')[0]+':'+str(v.mgr.port) for k, v in get_cluster_info().items()]")
         print(r)
     else:
         print(f"unknown command: {cmd}")
