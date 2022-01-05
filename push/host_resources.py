@@ -169,7 +169,11 @@ class HostResources(Resource):
         )
 
 
-def get_cluster_info(hosts, so):
+def get_cluster_info(hosts):
+    return hosts.lockData()
+
+
+def get_partition_info(hosts, so):
     all_nodes = [so.selfNode, *so.otherNodes]
     all_host_resources = hosts.lockData()
     if so.selfNode.id not in all_host_resources:

@@ -9,7 +9,7 @@ def main():
 
     from push.loader import load_in_memory_module
     from push.batteries import ReplLockDataManager
-    from push.host_resources import HostResources, GPUResources, get_cluster_info
+    from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
     from push.push_manager import PushManager
     from push.push_util import serve_forever
 
@@ -45,16 +45,23 @@ def main():
             # https://stackoverflow.com/questions/2295290/what-do-lambda-function-closures-capture
             PushManager.register(k, callable=lambda q=k: globals()[q])
 
+    print(f"setting up resources")
+    l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
+    l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
+
     globals()['repl_hosts'] = repl_hosts
-    globals()['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
+    globals()['get_cluster_info'] = l_get_cluster_info
+    globals()['get_partition_info'] = l_get_partition_info
     # globals()['host_resources'] = host_resources
 
     # update the boot_common module with host info
     mod = sys.modules['boot_common']
     mod.__dict__['repl_hosts'] = repl_hosts
-    mod.__dict__['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
+    mod.__dict__['get_cluster_info'] = l_get_cluster_info
+    mod.__dict__['get_partition_info'] = l_get_partition_info
 
-    PushManager.register("get_cluster_info", mod.__dict__['get_cluster_info'])
+    PushManager.register("get_cluster_info", callable=lambda: l_get_cluster_info)
+    PushManager.register("get_partition_info", callable=lambda: l_get_partition_info)
 
     print(f"registering host: {sync_obj.selfNode.id}")
     sync_obj.waitReady()

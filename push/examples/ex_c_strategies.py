@@ -18,7 +18,7 @@ np.random.seed(0)
 
 
 def process_ts_updates(idx_data, keys, data):
-    cluster_size, partition_id, hr = get_cluster_info()
+    cluster_size, partition_id, hr = get_partition_info()
     if cluster_size == 0:
         return
     # print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")

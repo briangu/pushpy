@@ -1,8 +1,11 @@
 TODO
 
+Add support for dynamic hosts
+Move loader to separate lib and add dict test
+
 break up examples into topics to illustrate different features
 fix reconnect for base manager
-add code hook to reload modules
+add code hook to reload modules 
 add item/value views for versioned dict
 add code import / export tools
     github
