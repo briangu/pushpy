@@ -7,7 +7,7 @@ import tornado.web
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from push.batteries import ReplSyncDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader, ReplLockDataManager
+from push.batteries import ReplEventDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader, ReplLockDataManager
 from push.loader import load_src
 from push.push_manager import PushManager
 from push.task_manager import TaskManager
@@ -56,7 +56,7 @@ class DoRegister:
 # exposed in boot_common
 repl_code_store = ReplVersionedDict()
 tm = TaskManager(repl_code_store)
-repl_kvstore = ReplSyncDict(on_set=tm.on_event_handler("process_kv_updates"))
+repl_kvstore = ReplEventDict(on_set=tm.on_event_handler("process_kv_updates"))
 repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
 repl_strategies = ReplList()
 repl_task_manager = ReplTaskManager(repl_kvstore, tm)
