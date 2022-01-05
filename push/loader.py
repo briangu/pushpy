@@ -183,11 +183,9 @@ def load_lambda(kvstore, src):
     src = load_src(kvstore, src)
     if isinstance(src, type):
         try:
-            globals()['repl_ts'] = object
             src = src()
             src = src.apply if hasattr(src, 'apply') else src
         except Exception as e:
-            print("here!")
             print(e)
             raise e
     return src

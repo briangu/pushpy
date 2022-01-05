@@ -2,6 +2,7 @@ def main():
     import asyncio
     import sys
     import time
+    import types
 
     import tornado.httpserver
     import tornado.web
@@ -48,6 +49,13 @@ def main():
     globals()['repl_hosts'] = repl_hosts
     globals()['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
     # globals()['host_resources'] = host_resources
+
+    # create a special module with the host info
+    # mod = types.ModuleType("hosts_common")
+    mod = sys.modules['boot_common']
+    mod.__dict__['repl_hosts'] = repl_hosts
+    mod.__dict__['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
+    # sys.modules[mod.__name__] = mod
 
     print(f"registering host: {sync_obj.selfNode.id}")
     while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=True):
