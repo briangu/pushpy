@@ -16,4 +16,5 @@ add code import / export tools
 add task routing based on host requirements
 
 DONE
+[x] REPL
 [x] work out the task relationship to global context - can they just write into the repl_ structs?

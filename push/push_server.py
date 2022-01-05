@@ -50,14 +50,12 @@ def main():
     l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
     l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
 
-    globals()['repl_hosts'] = repl_hosts
     globals()['get_cluster_info'] = l_get_cluster_info
     globals()['get_partition_info'] = l_get_partition_info
     globals()['host_resources'] = host_resources
 
     # update the boot_common module with host info
     mod = sys.modules['boot_common']
-    mod.__dict__['repl_hosts'] = repl_hosts
     mod.__dict__['get_cluster_info'] = l_get_cluster_info
     mod.__dict__['get_partition_info'] = l_get_partition_info
     mod.__dict__['host_resources'] = host_resources
