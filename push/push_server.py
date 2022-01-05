@@ -54,6 +54,8 @@ def main():
     mod.__dict__['repl_hosts'] = repl_hosts
     mod.__dict__['get_cluster_info'] = lambda: get_cluster_info(repl_hosts, sync_obj)
 
+    PushManager.register("get_cluster_info", mod.__dict__['get_cluster_info'])
+
     print(f"registering host: {sync_obj.selfNode.id}")
     sync_obj.waitReady()
     while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=True):

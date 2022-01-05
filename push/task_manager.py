@@ -69,7 +69,15 @@ class TaskManager:
             #     print(e)
             #     return e
             try:
-                return src(*args, **kwargs)
+                try:
+                    if callable(src):
+                        return src(*args, **kwargs)
+                    ctx = globals().copy()
+                    exec("from boot_common import *", ctx)
+                    return eval(src, ctx)
+                except Exception as e:
+                    print(e)
+                    return e
             except Exception as e:
                 print(e)
                 return e
