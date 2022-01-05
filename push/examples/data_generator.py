@@ -1,6 +1,6 @@
 class DataGeneratorTask:
     def __init__(self, _ts=None):
-        from repl_common import repl_ts
+        from boot_common import repl_ts
         self.ts = _ts or repl_ts
 
     def apply(self, control):

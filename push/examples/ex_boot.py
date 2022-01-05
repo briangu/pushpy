@@ -53,39 +53,27 @@ class DoRegister:
         PushManager.register(name, callable=lambda l=q: l)
 
 
+# exposed in boot_common
 repl_code_store = ReplVersionedDict()
-
 tm = TaskManager(repl_code_store)
-
 repl_kvstore = ReplSyncDict(on_set=tm.on_event_handler("process_kv_updates"))
 repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
 repl_strategies = ReplList()
-
 repl_task_manager = ReplTaskManager(repl_kvstore, tm)
 
 
 def main() -> (typing.List[object], typing.Dict[str, object]):
-    # repl_code_store = ReplVersionedDict()
-    #
-    # tm = TaskManager(repl_code_store)
-    #
-    # repl_kvstore = ReplSyncDict(on_set=tm.on_event_handler("process_kv_updates"))
-    # repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
-    # repl_strategies = ReplList()
-
     tm.start_event_handlers()
 
-    # repl_task_manager = ReplTaskManager(repl_kvstore, tm)
-
-    m_globals = dict()
-    m_globals['repl_kvstore'] = repl_kvstore
-    m_globals['repl_code_store'] = repl_code_store
-    m_globals['repl_tasks'] = repl_task_manager
-    m_globals['local_tasks'] = tm
-    m_globals['local_register'] = DoRegister(repl_code_store)
-    m_globals['repl_ts'] = repl_ts
-    m_globals['repl_strategies'] = repl_strategies
+    boot_globals = dict()
+    boot_globals['repl_kvstore'] = repl_kvstore
+    boot_globals['repl_code_store'] = repl_code_store
+    boot_globals['repl_tasks'] = repl_task_manager
+    boot_globals['local_tasks'] = tm
+    boot_globals['local_register'] = DoRegister(repl_code_store)
+    boot_globals['repl_ts'] = repl_ts
+    boot_globals['repl_strategies'] = repl_strategies
 
     CodeStoreLoader.install_importer({'repl_code_store': repl_code_store})
 
-    return m_globals, make_app(repl_code_store)
+    return boot_globals, make_app(repl_code_store)

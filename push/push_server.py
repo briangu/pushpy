@@ -32,7 +32,7 @@ def main():
 
     # >>> setup sync obj
     repl_hosts = ReplLockDataManager(autoUnlockTime=5)
-    boot_mod = load_in_memory_module(boot_module_src, name="repl_common")
+    boot_mod = load_in_memory_module(boot_module_src, name="boot_common")
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
     sync_obj = SyncObj(selfAddr, partners, consumers=[repl_hosts, *boot_consumers])
