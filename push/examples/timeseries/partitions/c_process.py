@@ -6,7 +6,7 @@ import numpy as np
 from push.host_resources import HostRequirements, GPURequirements
 from push.push_manager import PushManager
 from push.examples.timeseries.data_generator import DataGeneratorTask
-from push.examples.timeseries.strategy import Strategy
+from timeseries.partitions.strategy import Strategy
 
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
