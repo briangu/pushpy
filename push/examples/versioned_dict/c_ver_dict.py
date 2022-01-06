@@ -1,44 +1,25 @@
 import sys
-import time
 
 from push.push_manager import PushManager
-from simple_interpreter import Multiplier, Adder, Interpreter
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
 
-repl_tasks = m.repl_tasks()
-local_tasks = m.local_tasks()
-
-repl_code_store = m.repl_code_store()
-repl_code_store.update({
-    "interpreter.Interpreter": Interpreter,
-    "interpreter.math.Adder": Adder,
-    "interpreter.math.Multiplier": Multiplier
+repl_ver_store = m.repl_ver_store()
+repl_ver_store.update({
+    "a": 1,
+    "b": 2,
+    "c": 3
 }, sync=True)
 
-commands = ['add', 'add', 1, 2, 'mul', 3, 4]
-print(local_tasks.apply("interpreter.Interpreter", commands)[0])
+print(list(repl_ver_store.keys()))
 
+repl_ver_store.delete("b", sync=True)
+repl_ver_store.set("d", 4, sync=True)
 
-class AdderTask:
-    def apply(self, control):
-        print("my_adder_task daemon here! 1")
+print(list(repl_ver_store.keys()))
+print({k: repl_ver_store.get(k) for k in repl_ver_store.keys()})
 
-        import random
-        import time
+local_tasks = m.local_tasks()
+print(local_tasks.apply(lambda: list(repl_ver_store.items())))
 
-        while control.running:
-            commands = ['add', 'add', random.randint(0, 10), random.randint(0, 10), 'mul', random.randint(0, 10), random.randint(0, 10)]
-            print(local_tasks.apply("interpreter.Interpreter", commands)[0])
-            time.sleep(1)
-
-
-repl_code_store.set("my_adder_task", AdderTask, sync=True)
-
-dt = m.local_tasks()
-dt.stop("mat")
-dt.run("daemon", src="my_adder_task", name="mat")
-
-time.sleep(30)
-dt.stop("mat")
