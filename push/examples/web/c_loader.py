@@ -24,7 +24,8 @@ class MathHandler(tornado.web.RequestHandler):
         ops = json.loads(self.request.body.decode("utf-8"))
         r = local_tasks.apply("interpreter.Interpreter", ops)[0]
         self.write(str(r))
+        self.write("\n")
         self.finish()
 
 
-repl_code_store.set("/web/math", MathHandler)
+repl_code_store.set("/web/math", MathHandler, sync=True)
