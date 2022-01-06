@@ -1,4 +1,4 @@
-from tasks.scope.show_context import ShowGlobals, ShowLocals
+from push.examples.tasks.scope.show_context import ShowGlobals, ShowLocals
 from push.push_manager import PushManager
 import sys
 

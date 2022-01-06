@@ -5,5 +5,6 @@ class ShowGlobals:
 
 class ShowLocals:
     def apply(self):
-        from boot_common import repl_ts, repl_hosts
+        # show that we can use boot_common to import some instances
+        from boot_common import repl_ts, repl_ver_store
         return list(locals().keys())
