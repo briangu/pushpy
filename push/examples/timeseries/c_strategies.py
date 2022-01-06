@@ -63,7 +63,7 @@ repl_code_store.set("my_daemon_task", DataGeneratorTask, sync=True)
 dt = m.local_tasks()
 dt.stop("mdt")
 dt.clear_events()
-dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
+dt.run("daemon", src="my_daemon_task", name="mdt")
 
 time.sleep(300)
 

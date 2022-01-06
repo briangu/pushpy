@@ -2,14 +2,12 @@ import sys
 import time
 
 from push.push_manager import PushManager
-from simple_interpreter import Multiplier, Adder, Interpreter
+from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
 
-repl_tasks = m.repl_tasks()
-local_tasks = m.local_tasks()
-
+# load a set of classes into the code store to be resolved by the module loader
 repl_code_store = m.repl_code_store()
 repl_code_store.update({
     "interpreter.Interpreter": Interpreter,
@@ -17,14 +15,9 @@ repl_code_store.update({
     "interpreter.math.Multiplier": Multiplier
 }, sync=True)
 
-commands = ['add', 'add', 1, 2, 'mul', 3, 4]
-print(local_tasks.apply("interpreter.Interpreter", commands)[0])
 
-
-class AdderTask:
+class RandomMathDaemonTask:
     def apply(self, control):
-        print("my_adder_task daemon here! 1")
-
         import random
         import time
 
@@ -34,11 +27,12 @@ class AdderTask:
             time.sleep(1)
 
 
-repl_code_store.set("my_adder_task", AdderTask, sync=True)
+repl_code_store.set("my_adder_task", RandomMathDaemonTask, sync=True)
 
 dt = m.local_tasks()
-dt.stop("mat")
-dt.run("daemon", src="my_adder_task", name="mat")
+dt.stop("mmdt")
+dt.run("daemon", src="my_math_daemon_task", name="mmdt")
 
 time.sleep(30)
-dt.stop("mat")
+dt.stop("mmdt")
+

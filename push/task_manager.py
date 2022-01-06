@@ -86,6 +86,7 @@ class TaskManager:
     # TODO: pass args, kwargs to task thread
     # TODO: construct a task runtime context based on ctx
     def start_daemon(self, src, *args, ctx=None, **kwargs):
+        src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
         name = kwargs.pop("name", None)
         name = name or str(uuid.uuid4())
         if name in self.task_threads:

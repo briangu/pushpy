@@ -14,7 +14,7 @@ kvstore.set_sync("my_daemon_task", DataGeneratorTask)
 
 dt = m.local_tasks()
 dt.stop("mdt")
-dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
+dt.run("daemon", src="my_daemon_task", name="mdt")
 
 time.sleep(300)
 

@@ -82,7 +82,7 @@ kvstore.set_sync(key="my_lambda", value=dill.dumps(lambda *args, **kwargs: f"my 
 #         break
 # kvstore.set("my_lambda", "foo")
 
-print(dl.apply(src="kvstore:my_lambda"))
+print(dl.apply(src="my_lambda"))
 
 # TODO: task management
 #   cron https://github.com/dbader/schedule
@@ -138,7 +138,7 @@ class DoLambdaQueueTask:
 #
 kvstore.set_sync("my_task", dill.dumps(DoLambdaQueueTask))
 
-dl.apply(src="kvstore:my_task")
+dl.apply(src="my_task")
 
 # dqt = DoLambdaQueueTask(m.get_job_queue(), m.get_result_queue())
 # dqt.apply()
@@ -182,7 +182,7 @@ kvstore.set_sync("my_daemon_task", dill.dumps(DoDaemonTask))
 
 dt = m.tasks()
 dt.stop("mdt")
-dt.run("daemon", src="kvstore:my_daemon_task", name="mdt")
+dt.run("daemon", src="my_daemon_task", name="mdt")
 
 jq.put_sync(('add', 5, 6))
 while rq.qsize() == 0:

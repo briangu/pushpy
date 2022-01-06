@@ -35,7 +35,7 @@ repl_code_store.set("schedule_task", ScheduleTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("schedule_task")
-dt.run("daemon", src="kvstore:schedule_task", name="schedule_task")
+dt.run("daemon", src="schedule_task", name="schedule_task")
 
 time.sleep(300)
 
