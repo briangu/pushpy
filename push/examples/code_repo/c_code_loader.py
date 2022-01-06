@@ -28,6 +28,7 @@ class Adder2(Adder):
         return (a + b) * 2
 
 
+#TODO: loader needs to trigger on code update and reload
 repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
 r = local_tasks.apply("interpreter.Interpreter", ops)[0]
 print(r)
