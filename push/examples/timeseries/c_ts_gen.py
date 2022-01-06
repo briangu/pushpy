@@ -1,16 +1,16 @@
+import sys
 import time
 
-from timeseries.data_generator import DataGeneratorTask
+from push.examples.timeseries.data_generator import DataGeneratorTask
 from push.push_manager import PushManager
-import sys
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
 
 ts = m.repl_ts().reset()
 
-kvstore = m.repl_kvstore()
-kvstore.set_sync("my_daemon_task", DataGeneratorTask)
+repl_code_store = m.repl_code_store()
+repl_code_store.set("my_daemon_task", DataGeneratorTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("mdt")
