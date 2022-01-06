@@ -3,10 +3,11 @@ import time
 
 import numpy as np
 
-from timeseries.data_generator import DataGeneratorTask
 from push.host_resources import HostRequirements, GPURequirements
 from push.push_manager import PushManager
-from timeseries.strategy import Strategy
+from push.examples.timeseries.data_generator import DataGeneratorTask
+from push.examples.timeseries.strategy import Strategy
+
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
