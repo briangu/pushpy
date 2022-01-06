@@ -1,7 +1,5 @@
 #!../../venv/bin/python3
 
-import dill
-
 from push.push_manager import PushManager
 import sys
 
@@ -12,7 +10,7 @@ ts = m.repl_ts()
 print(m.repl_ts().flatten())
 
 dt = m.local_tasks()
-r = dt.apply(src=dill.dumps(lambda *args, **kwargs: repl_ts.flatten()))
+r = dt.apply(src=lambda *args, **kwargs: repl_ts.flatten())
 print(r)
 
 # import dill

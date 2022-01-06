@@ -1,7 +1,6 @@
 import sys
 import time
 
-import dill
 import numpy as np
 
 from timeseries.data_generator import DataGeneratorTask
@@ -40,7 +39,7 @@ def process_ts_updates(idx_data, keys, data):
 
 
 repl_code_store = m.repl_code_store()
-repl_code_store.update({"process_ts_updates": dill.dumps(process_ts_updates)}, sync=True)
+repl_code_store.update({"process_ts_updates": process_ts_updates}, sync=True)
 
 
 def random_host_requirement():
@@ -59,7 +58,7 @@ repl_strategies.reset(strategies)
 ts = m.repl_ts().reset()
 
 repl_code_store = m.repl_code_store()
-repl_code_store.set("my_daemon_task", dill.dumps(DataGeneratorTask), sync=True)
+repl_code_store.set("my_daemon_task", DataGeneratorTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("mdt")

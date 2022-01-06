@@ -1,10 +1,9 @@
 import sys
 
-import dill
 import tornado.web
 
 from push.push_manager import PushManager
-from simple_interpreter import Multiplier, Adder, Interpreter
+from push.examples.simple_interpreter import Interpreter, Adder, Multiplier
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
@@ -15,15 +14,14 @@ repl_tasks = m.repl_tasks()
 local_tasks = m.local_tasks()
 
 repl_code_store.update({
-    "interpreter.Interpreter": dill.dumps(Interpreter),
-    "interpreter.math.Adder": dill.dumps(Adder),
-    "interpreter.math.Multiplier": dill.dumps(Multiplier)
+    "interpreter.Interpreter": Interpreter,
+    "interpreter.math.Adder": Adder,
+    "interpreter.math.Multiplier": Multiplier
 }, sync=True)
 
 
 # curl -X PUT -d'{"k":"my_key", "v":"my_value"}' -H 'Content-Type: application/json' localhost:11000/kv
 # curl localhost:11000/kv?k=my_key
-# curl -X POST -d'["add", "add", 1, 2, "mul", 3, 4]' -H 'Content-Type: application/json' localhost:11000/math
 class HelloHandler(tornado.web.RequestHandler):
     def get(self):
         print(self.request.arguments)
@@ -45,12 +43,14 @@ class HelloHandler(tornado.web.RequestHandler):
             repl_kvstore.set(k, v)
 
 
+# curl localhost:11000/
 class HelloWorldHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("hello, world!")
         self.finish()
 
 
+# curl -X POST -d'["add", "add", 1, 2, "mul", 3, 4]' -H 'Content-Type: application/json' localhost:11000/math
 class MathHandler(tornado.web.RequestHandler):
     def post(self):
         import json
@@ -60,6 +60,6 @@ class MathHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-repl_code_store.set("/web/math", dill.dumps(MathHandler))
-repl_code_store.set("/web/kv", dill.dumps(HelloHandler))
-repl_code_store.set("/web/", dill.dumps(HelloWorldHandler))
+repl_code_store.set("/web/math", MathHandler)
+repl_code_store.set("/web/kv", HelloHandler)
+repl_code_store.set("/web/", HelloWorldHandler)

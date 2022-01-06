@@ -1,7 +1,5 @@
 import time
 
-import dill
-
 from push.push_manager import PushManager
 import sys
 
@@ -33,7 +31,7 @@ class ScheduleTask:
 
 
 repl_code_store = m.repl_code_store()
-repl_code_store.set("schedule_task", dill.dumps(ScheduleTask), sync=True)
+repl_code_store.set("schedule_task", ScheduleTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("schedule_task")

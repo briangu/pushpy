@@ -1,8 +1,6 @@
 import sys
 import time
 
-import dill
-
 from push.push_manager import PushManager
 from simple_interpreter import Multiplier, Adder, Interpreter
 
@@ -14,9 +12,9 @@ local_tasks = m.local_tasks()
 
 repl_code_store = m.repl_code_store()
 repl_code_store.update({
-    "interpreter.Interpreter": dill.dumps(Interpreter),
-    "interpreter.math.Adder": dill.dumps(Adder),
-    "interpreter.math.Multiplier": dill.dumps(Multiplier)
+    "interpreter.Interpreter": Interpreter,
+    "interpreter.math.Adder": Adder,
+    "interpreter.math.Multiplier": Multiplier
 }, sync=True)
 
 commands = ['add', 'add', 1, 2, 'mul', 3, 4]
@@ -36,7 +34,7 @@ class AdderTask:
             time.sleep(1)
 
 
-repl_code_store.set("my_adder_task", dill.dumps(AdderTask), sync=True)
+repl_code_store.set("my_adder_task", AdderTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("mat")
