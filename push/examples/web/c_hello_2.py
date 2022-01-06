@@ -13,7 +13,7 @@ repl_code_store = m.repl_code_store()
 # curl localhost:11000/
 class HelloWorldHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("hello, world!!!!\n")
+        self.write("Hello, World! (v2)\n")
 
 
 repl_code_store.set("/web/", HelloWorldHandler, sync=True)
