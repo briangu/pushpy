@@ -7,7 +7,10 @@ TODO
 - add task routing based on host requirements
 - ReplVersionedDict
   - add ReplVersionedDict event hook to reload modules 
+    - on_head_change
+    - add code reloading capability ?
   - add item/value views for versioned dict
+  - implement flatten
 - add code import / export tools
   - github
     - pull from github (version should be hash?)

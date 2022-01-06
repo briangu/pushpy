@@ -4,10 +4,10 @@ import time
 import dill
 import numpy as np
 
-from push.examples.data_generator import DataGeneratorTask
+from timeseries.data_generator import DataGeneratorTask
 from push.host_resources import HostRequirements, GPURequirements
 from push.push_manager import PushManager
-from push.examples.strategy import Strategy
+from timeseries.strategy import Strategy
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()

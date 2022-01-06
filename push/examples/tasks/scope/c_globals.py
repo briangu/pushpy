@@ -1,6 +1,6 @@
 import dill
 
-from push.examples.show_context import ShowGlobals, ShowLocals
+from tasks.scope.show_context import ShowGlobals, ShowLocals
 from push.push_manager import PushManager
 import sys
 

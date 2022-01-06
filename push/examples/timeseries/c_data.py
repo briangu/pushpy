@@ -2,7 +2,7 @@ import time
 
 import dill
 
-from push.examples.data_generator import DataGeneratorTask
+from timeseries.data_generator import DataGeneratorTask
 from push.push_manager import PushManager
 import sys
 
