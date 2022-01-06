@@ -377,5 +377,5 @@ mgr_port = (int(sys.argv[1].split(":")[1]) % 1000) + 50000
 print(mgr_port)
 m = PushManager(address=('', mgr_port), authkey=b'password')
 s = m.get_server()
-# TODO: i think this code can be rewritten to use asyncio / twisted
+# TODO: i think this code_repo can be rewritten to use asyncio / twisted
 s.serve_forever()

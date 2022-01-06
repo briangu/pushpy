@@ -64,6 +64,13 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
         self.__head = None
         self.__len_cache = {}
 
+    def clear(self):
+        self.__objects = {}
+        self.__references = {}
+        self.__version = None
+        self.__head = None
+        self.__len_cache = {}
+
     def __getitem__(self, k):
         x = self.get(k)
         if x is None:
@@ -148,12 +155,15 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     def set_head(self, version=None):
         if self.__version is None:
             if version is not None:
-                raise RuntimeError("no prior transactions")
+                # raise RuntimeError("no prior transactions")
+                return
         else:
-            self.__head = min(version or self.__version, self.__version)
+            if version is None:
+                version = self.__version
+            self.__head = min(version, self.__version)
 
     def get_head(self):
-        return self.__head or self.__version
+        return self.__version if self.__head is None else self.__head
 
     @replicated
     def update(self, other):

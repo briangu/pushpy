@@ -15,7 +15,7 @@ class TaskContext:
         self.thread = thread
 
 
-# TODO: add ability to store result of code store lambda in kvstore
+# TODO: add ability to store result of code_repo store lambda in kvstore
 class TaskManager:
 
     def __init__(self, code_store):

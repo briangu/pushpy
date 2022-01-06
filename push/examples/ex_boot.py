@@ -56,6 +56,7 @@ class DoRegister:
 # exposed in boot_common
 repl_code_store = ReplVersionedDict()
 tm = TaskManager(repl_code_store)
+repl_ver_store = ReplVersionedDict()
 repl_kvstore = ReplEventDict(on_set=tm.on_event_handler("process_kv_updates"))
 repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
 repl_strategies = ReplList()
@@ -67,6 +68,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
 
     boot_globals = dict()
     boot_globals['repl_kvstore'] = repl_kvstore
+    boot_globals['repl_ver_store'] = repl_ver_store
     boot_globals['repl_code_store'] = repl_code_store
     boot_globals['repl_tasks'] = repl_task_manager
     boot_globals['local_tasks'] = tm

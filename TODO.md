@@ -1,8 +1,9 @@
 TODO
 
+- break up examples into topics to illustrate different features
+- create docker/monitor folder
 - Add support for dynamic hosts
 - Move python finder/loader to separate lib and add dict test
-- break up examples into topics to illustrate different features
 - fix reconnect for base manager
 - add task routing based on host requirements
 - ReplVersionedDict
