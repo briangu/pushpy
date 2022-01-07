@@ -1,3 +1,5 @@
+#!../venv/bin/python3
+
 import asyncio
 import sys
 import uuid
