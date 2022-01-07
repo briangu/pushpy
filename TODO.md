@@ -1,5 +1,8 @@
 TODO
 
+On head change event
+  Invalidate module cache for push finder
+
 - break up examples into topics to illustrate different features
 - create docker/monitor folder
 - Add support for dynamic hosts
