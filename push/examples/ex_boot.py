@@ -7,8 +7,8 @@ import tornado.web
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from push.batteries import ReplEventDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader, ReplLockDataManager
-from push.loader import load_src
+from push.batteries import ReplEventDict, ReplTimeseries, ReplVersionedDict, ReplTaskManager, CodeStoreLoader
+from push.code_utils import load_src
 from push.push_manager import PushManager
 from push.task_manager import TaskManager
 

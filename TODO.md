@@ -3,6 +3,7 @@ TODO
 On head change event
   Invalidate module cache for push finder
 
+- add push config to store secrets, etc.
 - break up examples into topics to illustrate different features
 - create docker/monitor folder
 - Add support for dynamic hosts

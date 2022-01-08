@@ -4,7 +4,7 @@ class DataGeneratorTask:
         self.ts = _ts or repl_ts
 
     def apply(self, control):
-        print(f"daemon here! {control.running}")
+        print(f"Data Generator starting!")
 
         try:
             import datetime
@@ -20,3 +20,5 @@ class DataGeneratorTask:
                 time.sleep(1)
         except Exception as e:
             print(e)
+        finally:
+            print(f"Data Generator stopping!")

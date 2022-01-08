@@ -16,6 +16,8 @@ dt = m.local_tasks()
 dt.stop("mdt")
 dt.run("daemon", src="my_daemon_task", name="mdt")
 
-time.sleep(300)
+time.sleep(30)
+
+dt.apply(lambda: print("done!"))
 
 dt.stop("mdt")

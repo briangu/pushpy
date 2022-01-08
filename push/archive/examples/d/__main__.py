@@ -10,7 +10,7 @@ import tornado.web
 from lock import Lock
 from pysyncobj import SyncObjConf
 
-from push.loader import load_and_run
+from push.code_utils import load_and_run
 
 
 class MainCtrl:

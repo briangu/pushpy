@@ -7,14 +7,10 @@ import uuid
 import dill
 
 from push.push_manager import PushManager
+from push.push_server_utils import host_to_address
 
 push_managers = dict()
 default_host = sys.argv[1]
-
-
-def host_to_address(host):
-    p = host.split(":")
-    return (p[0], int(p[1])) if len(p) == 2 else ('', int(p[-1]))
 
 
 def connect_to_host(host):
@@ -61,8 +57,7 @@ async def sac_cmd(cmd):
     elif cmd == "hosts":
         m = connect_to_host(default_host)
         dt = m.local_tasks()
-        # r = host_exec_cmd(dt, "{k: v.mgr for k, v in get_cluster_info().items()}")
-        r = host_exec_cmd(dt, "[k.split(':')[0]+':'+str(v.mgr.port) for k, v in get_cluster_info().items()]")
+        r = host_exec_cmd(dt, "[v.mgr.host for k, v in get_cluster_info().items()]")
         print(r)
     else:
         print(f"unknown command: {cmd}")

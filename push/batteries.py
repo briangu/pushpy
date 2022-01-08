@@ -294,7 +294,7 @@ class CodeStoreLoader:
         pass
 
     @staticmethod
-    def install_importer(stores):
+    def install_importer(stores, enable_debug=True):
         import sys
 
         class DebugFinder(_MetaPathFinder):
@@ -304,7 +304,8 @@ class CodeStoreLoader:
                 return None
 
         sys.meta_path.insert(0, PushFinder(stores))
-        sys.meta_path.insert(0, DebugFinder())
+        if enable_debug:
+            sys.meta_path.insert(0, DebugFinder())
 
 
 class ReplTaskManager(SyncObjConsumer):

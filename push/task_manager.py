@@ -2,7 +2,7 @@ import threading
 import uuid
 from queue import Queue, Empty
 
-from push.loader import load_lambda, KvStoreLambda
+from push.code_utils import load_lambda, KvStoreLambda
 
 
 class TaskControl:

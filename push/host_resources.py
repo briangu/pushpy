@@ -117,10 +117,10 @@ class GPUResources(Resource):
 
 
 class ManagerResources(Resource):
-    port: int
+    host: str
 
-    def __init__(self, port):
-        self.port = port
+    def __init__(self, host):
+        self.host = host
 
     def __str__(self):
         return str(vars(self))
@@ -129,8 +129,8 @@ class ManagerResources(Resource):
         return self.__str__()
 
     @staticmethod
-    def create(port):
-        return ManagerResources(port)
+    def create(host):
+        return ManagerResources(host)
 
 
 class HostRequirements(Resource):
@@ -149,16 +149,19 @@ class HostRequirements(Resource):
 
 
 class HostResources(Resource):
+    host_id: str
     cpu: CPUResources
     memory: MemoryResources
     gpu: GPUResources
     mgr: ManagerResources
 
     def __init__(self,
+                 host_id: str,
                  cpu: CPUResources,
                  memory: MemoryResources,
                  gpu: GPUResources,
                  mgr: ManagerResources):
+        self.host_id = host_id
         self.cpu = cpu
         self.memory = memory
         self.gpu = gpu
@@ -181,12 +184,13 @@ class HostResources(Resource):
                (self.gpu.has_capacity(requirement.gpu) if requirement.gpu is not None else True)
 
     @staticmethod
-    def create(mgr_port=None):
+    def create(host_id, mgr_host=None):
         return HostResources(
+            host_id=host_id,
             cpu=CPUResources.create(),
             memory=MemoryResources.create(),
             gpu=GPUResources.create(),
-            mgr=ManagerResources.create(mgr_port)
+            mgr=ManagerResources.create(mgr_host)
         )
 
 

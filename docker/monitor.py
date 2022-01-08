@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-import os, sys
+import argparse
+import logging
+import os
+import signal
+import sys
 import threading
 import time
-import uuid
 
 import daemon
 import daemon.pidfile
-import argparse
-import signal
-import logging
 
 # adapted from https://raw.githubusercontent.com/ggmartins/dataengbb/master/python/daemon/daemon1
-from push.loader import ensure_path, load_and_run
+from push.code_utils import ensure_path, load_and_run
 
 PATHCTRL = '/tmp/push'  # path to control files pid and lock
 parser = argparse.ArgumentParser(prog="monitor")

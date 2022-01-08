@@ -150,6 +150,16 @@ def load_and_run(tmp_path, m, log, *args, **kwargs):
     context['main'](*args, **kwargs)
 
 
+def create_in_memory_module(name=None):
+    # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
+    import types
+    name = name or str(uuid.uuid4())
+    mod = types.ModuleType(name)
+    sys.modules[name] = mod
+    exec("", mod.__dict__)
+    return mod
+
+
 def load_in_memory_module(src, name=None):
     # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
     import types
