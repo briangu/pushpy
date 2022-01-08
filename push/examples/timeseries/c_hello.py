@@ -1,10 +1,8 @@
 import sys
 import time
 
-import numpy as np
-
-from push.push_manager import PushManager
 from push.examples.timeseries.data_generator import DataGeneratorTask
+from push.push_manager import PushManager
 
 m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
 m.connect()
