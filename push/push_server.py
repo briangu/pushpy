@@ -1,6 +1,3 @@
-from push.code_utils import create_in_memory_module
-
-
 def main():
     import asyncio
     import sys
@@ -11,7 +8,7 @@ def main():
     from pysyncobj import SyncObj, SyncObjConsumer
 
     from push.batteries import ReplLockDataManager
-    from push.code_utils import load_in_memory_module
+    from push.code_utils import load_in_memory_module, create_in_memory_module
     from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
     from push.push_manager import PushManager
     from push.push_server_utils import serve_forever, host_to_address
