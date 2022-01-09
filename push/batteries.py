@@ -56,7 +56,8 @@ class ReplEventDict(ReplDict):
 # TODO: grab a lock for commit transaction otherwise a seperate process can
 class ReplVersionedDict(SyncObjConsumer, Mapping):
 
-    def __init__(self):
+    def __init__(self, on_head_change=None):
+        self.on_head_change = on_head_change
         super(ReplVersionedDict, self).__init__()
         self.__objects = {}
         self.__references = {}
@@ -161,6 +162,8 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
             if version is None:
                 version = self.__version
             self.__head = min(version, self.__version)
+            if self.on_head_change is not None:
+                self.on_head_change(self.__head)
 
     def get_head(self):
         return self.__version if self.__head is None else self.__head
@@ -303,9 +306,13 @@ class CodeStoreLoader:
                 print(f"Importing {name!r}")
                 return None
 
-        sys.meta_path.insert(0, PushFinder(stores))
+        finder = PushFinder(stores)
+
+        sys.meta_path.insert(0, finder)
         if enable_debug:
             sys.meta_path.insert(0, DebugFinder())
+
+        return finder
 
 
 class ReplTaskManager(SyncObjConsumer):

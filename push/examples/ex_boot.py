@@ -1,3 +1,6 @@
+import importlib
+import sys
+import types
 import typing
 
 import tornado.gen
@@ -53,18 +56,28 @@ class DoRegister:
         PushManager.register(name, callable=lambda l=q: l)
 
 
-# exposed in boot_common
-repl_code_store = ReplVersionedDict()
-tm = TaskManager(repl_code_store)
-repl_ver_store = ReplVersionedDict()
-repl_kvstore = ReplEventDict(on_set=tm.on_event_handler("process_kv_updates"))
-repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
-repl_strategies = ReplList()
-repl_task_manager = ReplTaskManager(repl_kvstore, tm)
-
-
 def main() -> (typing.List[object], typing.Dict[str, object]):
-    tm.start_event_handlers()
+    repl_code_store = ReplVersionedDict()
+    tm = TaskManager(repl_code_store)
+    repl_ver_store = ReplVersionedDict()
+    repl_kvstore = ReplEventDict(on_set=tm.on_event_handler("process_kv_updates"))
+    repl_ts = ReplTimeseries(on_append=tm.on_event_handler("process_ts_updates"))
+    repl_strategies = ReplList()
+    repl_task_manager = ReplTaskManager(repl_kvstore, tm)
+
+    code_store_name = "repl_code_store"
+
+    finder = CodeStoreLoader.install_importer({code_store_name: repl_code_store})
+
+    def invalidate_caches(head):
+        print(f"invalidate_caches: head={head}")
+        finder.invalidate_caches()
+        for key in list(sys.modules.keys()):
+            if key.startswith(code_store_name):
+                print(f"reloading module: {key}")
+                importlib.reload(sys.modules[key])
+
+    repl_code_store.on_head_change = invalidate_caches
 
     boot_globals = dict()
     boot_globals['repl_kvstore'] = repl_kvstore
@@ -76,6 +89,6 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     boot_globals['repl_ts'] = repl_ts
     boot_globals['repl_strategies'] = repl_strategies
 
-    CodeStoreLoader.install_importer({'repl_code_store': repl_code_store})
+    tm.start_event_handlers()
 
     return boot_globals, make_app(repl_code_store)
