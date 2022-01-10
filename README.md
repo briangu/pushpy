@@ -106,6 +106,8 @@ Code Store that allows for deploying code automatically to a cluster as well as 
 The flexible nature of Python enables treating compiled code, lambdas, as the smallest unit of "container."  Push supports loading modules
 directly from the versioned code store, so the module code itself can be updated dynamically.  
 
+#Dynamic Modules via Versioned Dictionary
+
 The following example shows the dynamic module system being able to load a module from the vdict.  We first set the
 code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
 
@@ -157,12 +159,11 @@ assert r == 36
 
 ```
 
-
-
-Some caveats:
+# Some caveats
 
 - Push services are currently multithreaded, containing the Raft server, which will cause the GIL to be used.
 - Python modules either need to be installed beforehand or dynamically (e.g. via shell)
+- Python may not behave well with reloading modules on the fly, at least this was reported in older versions.
 
 # License
 
