@@ -27,6 +27,8 @@ On head change event
   - add a separate dict for host resources
   - lock indicates host presence (requiring a join to the host resources dict)
 - add UDP transport for scaling nodes
+# TODO: test storing result and using it in a subsequent task
+# TODO: add support for daemon deployment via repl task
 
 DONE
 - [x] REPL

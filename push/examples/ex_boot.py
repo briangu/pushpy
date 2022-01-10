@@ -70,7 +70,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     finder = CodeStoreLoader.install_importer({code_store_name: repl_code_store})
 
     def invalidate_caches(head):
-        print(f"invalidate_caches: head={head}")
+        print(f"reloading push modules: head={head}")
         finder.invalidate_caches()
         for key in list(sys.modules.keys()):
             if key.startswith(code_store_name):

@@ -15,4 +15,6 @@ repl_code_store.update({
 
 # run task via this client
 commands = ['add', 'add', 1, 2, 'mul', 3, 4]
-print(local_tasks.apply("interpreter.Interpreter", commands)[0])
+print("local", local_tasks.apply("interpreter.Interpreter", commands)[0])
+repl_tasks = m.repl_tasks()
+print("repl", repl_tasks.apply("interpreter.Interpreter", commands, sync=True)[0])
