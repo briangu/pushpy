@@ -1,6 +1,6 @@
 # Push
 
-Push (as in "push code") is an experimental Python application server that combines [Raft](https://en.wikipedia.org/wiki/Raft_(algorithm))-based features with the 
+Push (as in "push code") is an experimental Python app-server that combines [Raft](https://en.wikipedia.org/wiki/Raft_(algorithm)) based features (using [PySyncObj](https://github.com/bakwc/PySyncObj)) with the 
 flexibility of Python, creating simple system that is both dynamic and fault-tolerant.  It's also an answer to the question:
 How many of the modern app-stack concerns can be collapsed into a single system, while also being easy to use?  
 
@@ -21,7 +21,7 @@ Note that Push uses the Python [BaseManager](https://docs.python.org/3/library/m
 Using BaseManager eliminates the need to write a lot of code and provides its own useful features, such as the 
 ability to run client code that references replicated data structures.
 
-Push features / goals:
+# Push features / goals:
 
 - Single server artifact
   - Only need to deploy the Push servers
@@ -56,11 +56,22 @@ Push features / goals:
   - Applications can have tasks which use ML on GPU-capable hosts
   - ML inference engines can publish back into the shared state
 
-```python
-
+# Quick start
+Start example cluster and launch REPL.
+```bash
+$ export PUSH_HOME=`pwd`
+$ ./push/examples/run_cluster.sh
+> hosts
+['localhost:50000', 'localhost:50001', 'localhost:50002']
+>>> @localhost:50000
+localhost:50000 >>> 
 ```
 
-Examples
+Now you can run examples against a 3-node cluster.
+
+# Examples
+
+_a note on notation: 'repl' is used to denote 'replicated'_
 
 - Web: Tornado based examples showing code loading via code store path
   - [Hello, World](push/examples/web/c_hello.py)
@@ -101,7 +112,11 @@ Some caveats:
 - Push services are currently multithreaded, containing the Raft server, which will cause the GIL to be used.
 - Python modules either need to be installed beforehand or dynamically (e.g. via shell)
 
+# License
 
+[MIT](LICENSE.txt)
 
+# References
 
-    
+Raft implementation is based on [PySyncObj](https://github.com/bakwc/PySyncObj).
+
