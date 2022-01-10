@@ -1,10 +1,9 @@
-import sys
 import time
 
+from push.examples.ex_push_manager import ExamplePushManager
 from push.examples.timeseries.data_generator import DataGeneratorTask
-from push.push_manager import PushManager
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 ts = m.repl_ts().reset()

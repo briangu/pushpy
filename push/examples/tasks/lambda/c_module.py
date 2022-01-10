@@ -1,9 +1,7 @@
-import sys
-
+from push.examples.ex_push_manager import ExamplePushManager
 from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
-from push.push_manager import PushManager
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 local_tasks = m.local_tasks()

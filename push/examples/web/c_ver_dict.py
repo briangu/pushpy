@@ -1,10 +1,8 @@
-import sys
-
 import tornado.web
 
-from push.push_manager import PushManager
+from push.examples.ex_push_manager import ExamplePushManager
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 repl_code_store = m.repl_code_store()

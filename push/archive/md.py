@@ -1,9 +1,8 @@
 import dill
 
-from push.push_manager import PushManager
-import sys
+from push.examples.ex_push_manager import ExamplePushManager
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 jq = m.get_job_queue()

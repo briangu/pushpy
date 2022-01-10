@@ -1,10 +1,9 @@
-import sys
 import time
 
-from push.push_manager import PushManager
+from push.examples.ex_push_manager import ExamplePushManager
 from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 # load a set of classes into the code store to be resolved by the module loader

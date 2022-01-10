@@ -1,9 +1,8 @@
-import sys
 import time
 
-from push.push_manager import PushManager
+from push.examples.ex_push_manager import ExamplePushManager
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 

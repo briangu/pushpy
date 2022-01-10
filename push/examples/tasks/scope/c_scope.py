@@ -1,8 +1,7 @@
+from push.examples.ex_push_manager import ExamplePushManager
 from push.examples.tasks.scope.show_context import ShowGlobals, ShowLocals
-from push.push_manager import PushManager
-import sys
 
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 

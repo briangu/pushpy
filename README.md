@@ -1,19 +1,34 @@
 # Push
 
-Push (as in "push code") is an experimental Raft-based Python application server. 
+Push (as in "push code") is an experimental dynamic and fault-tolerant Python application server with a 
+focus on applications that need web APIs, long-running tasks, streaming and data processing.  Push mostly 
+attains its goals by coexisting the application logic with Raft-based data structures, allowing intrinsic
+Raft to manipulate state as well as provide for fault-tolerance.  That is, internal app communication occurs primarily
+via Raft consensus.  Code deployment also occurs via Raft-based versioned dictionary, providing a git-like
+code store that allows arbitrary version changes (via HEAD changes), making code deploys basically instantaneous
+and instantly reversible.  
 
-It is an answer to the question: How many of the modern app-stack concerns
-can be collapsed into a single system, while also being easy to use?  
+In short, Push is an experiment about leaning heavily on Raft and answering the question:
+How many of the modern app-stack concerns can be collapsed into a single system, while also being easy to use?  
 
 By piggy backing on implicit Raft mechanics, Push combines many useful features, normally found in separate systems, 
 into a simple, dynamic, highly-reliable, application server.  
 
+The following is a list of goals (features) desired while designing Push.  Many exist normally by relying on 
+additional systems, but Raft allows for them to occur naturally in a single system.  To be fair, most of these
+features are simply restatements of Raft-base data structures, but it's interesting to think of them in terms
+of infra features.
 
-Key goals (features):
+Note that Push uses the Python BaseManager extensively when interacting with a node from external system.  
+Using BaseManager eliminates the need to write a lot of code and provides its own useful features, such as the 
+ability to run client code that references replicated data structures.
+
+Push features / goals:
 
 - Single server artifact
   - Only need to deploy the Push servers
-  - Configurable 'boot' module that sets up app
+  - Doesn't need Docker (particularly important for older ARM systems that can't run docker)
+  - Configurable 'boot' module that sets up app context
 - Developer productivity
   - Simple self-contained system
   - Instant, zero-down-time, code deploys
@@ -44,6 +59,8 @@ Key goals (features):
   - ML inference engines can publish back into the shared state
 
 
+
+
 Examples
 
 - Web
@@ -66,6 +83,8 @@ Examples
   - partitioned handlers
 - REPL
 - 
+
+
 
 
 

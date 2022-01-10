@@ -1,9 +1,7 @@
 #!../../venv/bin/python3
+from push.examples.ex_push_manager import ExamplePushManager
 
-from push.push_manager import PushManager
-import sys
-
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 dt = m.local_tasks()

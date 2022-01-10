@@ -1,15 +1,13 @@
-import sys
 import time
 
 import numpy as np
 
-from push.host_resources import HostRequirements, GPURequirements
-from push.push_manager import PushManager
+from push.examples.ex_push_manager import ExamplePushManager
 from push.examples.timeseries.data_generator import DataGeneratorTask
+from push.host_resources import HostRequirements, GPURequirements
 from timeseries.partitions.strategy import Strategy
 
-
-m = PushManager(address=('', int(sys.argv[1])), authkey=b'password')
+m = ExamplePushManager()
 m.connect()
 
 symbols = ['MSFT', 'TWTR', 'EBAY', 'CVX', 'W', 'GOOG', 'FB']
