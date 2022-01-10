@@ -2,11 +2,11 @@
 
 Push (as in "push code") is an experimental dynamic and fault-tolerant Python application server with a 
 focus on applications that need web APIs, long-running tasks, streaming and data processing.  Push mostly 
-attains its goals by coexisting the application logic with Raft-based data structures, allowing intrinsic
-Raft to manipulate state as well as provide for fault-tolerance.  That is, internal app communication occurs primarily
-via Raft consensus.  Code deployment also occurs via Raft-based versioned dictionary, providing a git-like
-code store that allows arbitrary version changes (via HEAD changes), making code deploys basically instantaneous
-and instantly reversible.  
+attains its goals by combining the application logic with Raft-based data structures, allowing intrinsic
+Raft operations to be used to to manipulate app state as well as provide for fault-tolerance.  That is, internal 
+app communication occurs primarily via Raft consensus.  Code deployment also occurs via Raft-based versioned 
+dictionary, providing a git-like code store that allows arbitrary version changes (via HEAD changes), making code 
+deploys basically instantaneous and instantly reversible.  
 
 In short, Push is an experiment about leaning heavily on Raft and answering the question:
 How many of the modern app-stack concerns can be collapsed into a single system, while also being easy to use?  

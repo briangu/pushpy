@@ -38,6 +38,7 @@ class InterpreterWrapper:
         from repl_code_store.interpreter import Interpreter
         return Interpreter().apply(ops)
 
+
 r = local_tasks.apply(InterpreterWrapper, ops)[0]
 print(r)
 assert r == 36
