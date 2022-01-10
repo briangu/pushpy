@@ -20,8 +20,16 @@ class MathHandler(tornado.web.RequestHandler):
     def post(self):
         import json
         ops = json.loads(self.request.body.decode("utf-8"))
+
+        # execute via the task manager
         r = local_tasks.apply("interpreter.Interpreter", ops)[0]
-        self.write(str(r))
+        self.write(f"task: {r}")
+        self.write("\n")
+
+        # execute via importing directly from the code store
+        from repl_code_store.interpreter import Interpreter
+        r = Interpreter().apply(ops=ops)[0]
+        self.write(f"import: {r}")
         self.write("\n")
         self.finish()
 

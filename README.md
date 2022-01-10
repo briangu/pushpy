@@ -64,7 +64,7 @@ Push features / goals:
 Examples
 
 - Web
-  - Hello, World
+  - [Hello, World](push/examples/web/c_hello.py)
   - Versioned Hello, World
 - Code repo
   - import
@@ -81,32 +81,9 @@ Examples
 - Timeseries
   - simple
   - partitioned handlers
-- REPL
-- 
+- [REPL](push/push_repl.py)
 
 
-
-
-
-
-where application code coexists with Raft services,
-
-so that internal 
-task communication, shared state, deployment are based on Raft data structures.  Piggy backing on implicit Raft mechanics allows Push to 
-combine several features normally found in separate systems.
-
-
-Push (as in "push code") is a Raft-based application server, where application code is embedded with Raft services so that internal 
-task communication, shared state, deployment are based on Raft data structures.  Piggy backing on implicit Raft mechanics allows Push to 
-combine several features normally found in separate systems.
-
-creating a dynamic, fault-tolerant app server for quick development and zero-downtime deployment of 
-versioned code / artifacts.
-
-
-It's an experimental project that combines several features normally 
-found in separate systems creating a dynamic, fault-tolerant app server for quick development and zero-downtime deployment of 
-versioned code / artifacts.
 
 As expected, most of Push's flexibility comes from both the dynamic nature of Python and Raft consensus protocol.
 Shared data structures are implemented using Raft as well as the deployment model.  Using a versioned dictionary, Push has a git-like
@@ -115,46 +92,12 @@ Code Store that allows for deploying code automatically to a cluster as well as 
 The flexible nature of Python enables treating compiled code, lambdas, as the smallest unit of "container."  Push supports loading modules
 directly from the versioned code store, so the module code itself can be updated dynamically.  
 
-By taking advantage of Raft implicit mechanics, Push is 
-
-
-
-Key features (goals):
-
-- Developer productivity
-  - Simple self-contained system
-  - Make code deploys as fast as hitting enter
-  - Extensible 
-- Use compiled Python as “containers”
-  - Explore compiled code as the simplest unit
-  - Take advantage of 
-- Zero down time deployment
-  - instantly rollback to any prior version
-  - may deploy new code and enable it later
-- High availability / fault-tolerance
-  - Push is effectively a distributed app-server built on Raft
-  - Shared data structures are implemented in Raft
-- Allow mixed / heterogeneous host machine support
-  - Supports heterogeneous machines and machine capability registration
-  - Easily partition work handlers by machine capabilities
-- Support integrating Machine Learning / Training
-  - Applications can have tasks which use ML on GPU-capable hosts
-  - ML inference engines can publish back into the shared state
-
-
-
-
-
-
-
-
-
 
 Some caveats:
 
 - Push services are currently multithreaded, containing the Raft server, which will cause the GIL to be used.
-- Python modules either need to be installed beforehand or dynamically
-- 
+- Python modules either need to be installed beforehand or dynamically (e.g. via shell)
+
 
 
 
