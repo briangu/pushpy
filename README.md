@@ -1,17 +1,15 @@
 # Push
 
-Push (as in "push code") is an experimental dynamic and fault-tolerant Python application server with a 
-focus on applications that need web APIs, long-running tasks, streaming and data processing.  Push mostly 
+Push (as in "push code") is an experimental Python application server that combines [Raft](https://en.wikipedia.org/wiki/Raft_(algorithm))-based features with the 
+flexibility of Python, creating simple system that is both dynamic and fault-tolerant.  It's also an answer to the question:
+How many of the modern app-stack concerns can be collapsed into a single system, while also being easy to use?  
+
+As an app-server, Push is useful for applications that need web APIs, long-running tasks, streaming and data processing.  Push mostly 
 attains its goals by combining the application logic with Raft-based data structures, allowing intrinsic
 Raft operations to be used to to manipulate app state as well as provide for fault-tolerance.  That is, internal 
 app communication occurs primarily via Raft consensus.  Code deployment also occurs via Raft-based versioned 
 dictionary, providing a git-like code store that allows arbitrary version changes (via HEAD changes), making code 
-deploys basically instantaneous and instantly reversible.  
-
-In short, Push is an experiment about leaning heavily on Raft and answering the question:
-How many of the modern app-stack concerns can be collapsed into a single system, while also being easy to use?  
-
-By piggy backing on implicit Raft mechanics, Push combines many useful features, normally found in separate systems, 
+deploys basically instantaneous and instantly reversible.  By piggy backing on implicit Raft mechanics, Push combines many useful features, normally found in separate systems, 
 into a simple, dynamic, highly-reliable, application server.  
 
 The following is a list of goals (features) desired while designing Push.  Many exist normally by relying on 
@@ -19,7 +17,7 @@ additional systems, but Raft allows for them to occur naturally in a single syst
 features are simply restatements of Raft-base data structures, but it's interesting to think of them in terms
 of infra features.
 
-Note that Push uses the Python BaseManager extensively when interacting with a node from external system.  
+Note that Push uses the Python [BaseManager](https://docs.python.org/3/library/multiprocessing.html) extensively when interacting with a node from external system.  
 Using BaseManager eliminates the need to write a lot of code and provides its own useful features, such as the 
 ability to run client code that references replicated data structures.
 
@@ -57,7 +55,10 @@ Push features / goals:
 - Support integrating Machine Learning / Training
   - Applications can have tasks which use ML on GPU-capable hosts
   - ML inference engines can publish back into the shared state
-  
+
+```python
+
+```
 
 Examples
 
@@ -68,17 +69,17 @@ Examples
   - [import](push/examples/code_repo/import)
   - [export](push/examples/code_repo/export)
   - [versioning](push/examples/code_repo/c_versions.py)
-  - module loader
+  - [module loader](push/examples/code_repo/c_module.py)
 - [Versioned Dictionary (vdict)](push/examples/versioned_dict)
 - [Tasks](push/examples/tasks)
-  - daemon
-    - local
+  - [daemon](push/examples/tasks/daemon)
+    - [local](push/examples/tasks/daemon/local)
       - [Hello, World](push/examples/tasks/daemon/local/c_hello.py)
       - [module](push/examples/tasks/daemon/local/c_module.py)
     - [replicated](push/examples/tasks/daemon/c_repl.py)
-  - lambda
-  - schedule
-  - scope
+  - [lambda](push/examples/tasks/lambda)
+  - [schedule](push/examples/tasks/schedule)
+  - [scope](push/examples/tasks/scope)
 - Queues
 - [Timeseries](push/examples/timeseries)
   - simple
