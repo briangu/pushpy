@@ -104,9 +104,9 @@ Shared data structures are implemented using Raft as well as the deployment mode
 Code Store that allows for deploying code automatically to a cluster as well as switching between versions on the fly.
 
 The flexible nature of Python enables treating compiled code, lambdas, as the smallest unit of "container."  Push supports loading modules
-directly from the versioned code store, so the module code itself can be updated dynamically.  
+directly from the versioned code store, so the module code itself can be updated dynamically.
 
-#Dynamic Modules via Versioned Dictionary
+# Dynamic Modules via Versioned Dictionary
 
 The following example shows the dynamic module system being able to load a module from the vdict.  We first set the
 code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
