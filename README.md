@@ -106,6 +106,58 @@ Code Store that allows for deploying code automatically to a cluster as well as 
 The flexible nature of Python enables treating compiled code, lambdas, as the smallest unit of "container."  Push supports loading modules
 directly from the versioned code store, so the module code itself can be updated dynamically.  
 
+The following example shows the dynamic module system being able to load a module from the vdict.  We first set the
+code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
+
+```python
+from push.examples.ex_push_manager import ExamplePushManager
+from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
+
+m = ExamplePushManager()
+m.connect()
+
+local_tasks = m.local_tasks()
+
+repl_code_store = m.repl_code_store()
+repl_code_store.update({
+    "interpreter.Interpreter": Interpreter,
+    "interpreter.math.Adder": Adder,
+    "interpreter.math.Multiplier": Multiplier
+}, sync=True)
+
+ops = ['add', 'add', 1, 2, 'mul', 3, 4]
+
+# run task via this client
+r = local_tasks.apply("interpreter.Interpreter", ops)[0]
+print(r)
+assert r == 15
+
+
+class Adder2(Adder):
+    def apply(self, a, b):
+        print("using adder v2")
+        return (a + b) * 2
+
+
+repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
+r = local_tasks.apply("interpreter.Interpreter", ops)[0]
+print(r)
+assert r == 36
+
+
+class InterpreterWrapper:
+    def apply(self, ops):
+        from repl_code_store.interpreter import Interpreter
+        return Interpreter().apply(ops)
+
+
+r = local_tasks.apply(InterpreterWrapper, ops)[0]
+print(r)
+assert r == 36
+
+```
+
+
 
 Some caveats:
 
