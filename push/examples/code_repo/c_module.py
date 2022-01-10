@@ -31,3 +31,13 @@ repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
 r = local_tasks.apply("interpreter.Interpreter", ops)[0]
 print(r)
 assert r == 36
+
+
+class InterpreterWrapper:
+    def apply(self, ops):
+        from repl_code_store.interpreter import Interpreter
+        return Interpreter().apply(ops)
+
+r = local_tasks.apply(InterpreterWrapper, ops)[0]
+print(r)
+assert r == 36

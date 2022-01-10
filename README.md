@@ -57,28 +57,30 @@ Push features / goals:
 - Support integrating Machine Learning / Training
   - Applications can have tasks which use ML on GPU-capable hosts
   - ML inference engines can publish back into the shared state
-
-
-
+  
 
 Examples
 
-- Web
+- Web: Tornado based examples showing code loading via code store path
   - [Hello, World](push/examples/web/c_hello.py)
-  - Versioned Hello, World
-- Code repo
-  - import
-  - export
-  - versioning
+  - [Versioned Hello, World](push/examples/web/do_hello.sh)
+- Code repo: Showing how the vdict is used to store and version code
+  - [import](push/examples/code_repo/import)
+  - [export](push/examples/code_repo/export)
+  - [versioning](push/examples/code_repo/c_versions.py)
   - module loader
-- Versioned Dictionary
-- Tasks
+- [Versioned Dictionary (vdict)](push/examples/versioned_dict)
+- [Tasks](push/examples/tasks)
   - daemon
+    - local
+      - [Hello, World](push/examples/tasks/daemon/local/c_hello.py)
+      - [module](push/examples/tasks/daemon/local/c_module.py)
+    - [replicated](push/examples/tasks/daemon/c_repl.py)
   - lambda
   - schedule
   - scope
 - Queues
-- Timeseries
+- [Timeseries](push/examples/timeseries)
   - simple
   - partitioned handlers
 - [REPL](push/push_repl.py)
