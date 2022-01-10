@@ -1,9 +1,10 @@
 from setuptools import setup
 from push.version import VERSION
 
-description='A library for enabling dynamic distributed python deployment'
+description = 'A library for enabling dynamic distributed python deployment'
 try:
     import pypandoc
+
     long_description = pypandoc.convert('README.md', 'rst')
 except(IOError, ImportError, RuntimeError):
     long_description = description
@@ -18,8 +19,7 @@ setup(
     author_email='brian@ops5.com',
     license='MIT',
     url='https://github.com/briangu/push',
-    download_url='https://github.com/bakwc/PySyncObj/tarball/' + VERSION,
-    keywords=['network', 'replication', 'raft', 'synchronization'],
+    keywords=['network', 'replication', 'raft', 'synchronization', 'application'],
     classifiers=[
         'Topic :: System :: Networking',
         'Topic :: System :: Distributed Computing',
@@ -31,7 +31,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'push_admin=push.push_admin:main',
+            'push_repl=push.push_repl:main',
         ],
     },
 )
