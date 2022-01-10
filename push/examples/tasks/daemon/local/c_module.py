@@ -21,12 +21,16 @@ class RandomMathDaemonTask:
         import time
 
         while control.running:
-            commands = ['add', 'add', random.randint(0, 10), random.randint(0, 10), 'mul', random.randint(0, 10), random.randint(0, 10)]
-            print(local_tasks.apply("interpreter.Interpreter", commands)[0])
+            ops = ['add', 'add', random.randint(0, 10), random.randint(0, 10), 'mul', random.randint(0, 10), random.randint(0, 10)]
+            print("task: ", local_tasks.apply("interpreter.Interpreter", ops)[0])
+
+            from repl_code_store.interpreter import Interpreter
+            print("import: ", Interpreter().apply(ops=ops)[0])
+
             time.sleep(1)
 
 
-repl_code_store.set("my_adder_task", RandomMathDaemonTask, sync=True)
+repl_code_store.set("my_math_daemon_task", RandomMathDaemonTask, sync=True)
 
 dt = m.local_tasks()
 dt.stop("mmdt")
