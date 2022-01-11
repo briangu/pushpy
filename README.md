@@ -69,13 +69,70 @@ localhost:50000 >>>
 
 Now you can run examples against a 3-node cluster.
 
-# Examples
+# Versioned Web Handler Example
+
+The following is a simple example of how the versioned dictionary can be used to version the root web handler.
+The default tornado router looks into the versioned dictionary to match the /web + path and resolves to /web/.  
+Looking into the dictionary it will find /web/ in repl_code_store and execute the handler.  When this handler
+is changed, it will automatically be used.
+
+```python
+import requests
+import tornado.web
+
+from push.examples.ex_push_manager import ExamplePushManager
+
+m = ExamplePushManager()
+m.connect()
+
+repl_code_store = m.repl_code_store()
+
+web_url = "http://localhost:11000/"
+
+
+class HelloWorldHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write(f"hello, world!!!! head=[{repl_code_store.get_head()}]\n")
+
+
+repl_code_store.set("/web/", HelloWorldHandler, sync=True)
+print(requests.get(web_url).text)
+
+
+class HelloWorldHandler2(tornado.web.RequestHandler):
+    def get(self):
+        self.write(f"Hello, World! (v2) head=[{repl_code_store.get_head()}]\n")
+
+# update and change to v2
+repl_code_store.set("/web/", HelloWorldHandler2, sync=True)
+print(requests.get(web_url).text)
+
+# revert to the first version of HelloWorldHandler
+repl_code_store.set_head(version=repl_code_store.get_head() - 1, sync=True)
+print(requests.get(web_url).text)
+```
+[code](push/examples/web/c_hello_versioned.py)
+
+```
+$ python3 $PUSH_HOME/push/examples/web/c_hello_versioned.py
+```
+
+Output
+```
+hello, world!!!! head=[0]
+
+Hello, World! (v2) head=[1]
+
+hello, world!!!! head=[0]
+```
+
+# More Examples
 
 _a note on notation: 'repl' is used to denote 'replicated'_
 
 - Web: Tornado based examples showing code loading via code store path
   - [Hello, World](push/examples/web/c_hello.py)
-  - [Versioned Hello, World](push/examples/web/do_hello.sh)
+  - [Versioned Hello, World](push/examples/web/c_hello_versioned.py)
 - Code repo: Showing how the vdict is used to store and version code
   - [import](push/examples/code_repo/import)
   - [export](push/examples/code_repo/export)

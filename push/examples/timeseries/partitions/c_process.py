@@ -16,11 +16,11 @@ np.random.seed(0)
 
 
 def process_ts_updates(idx_data, keys, data):
-    cluster_size, partition_id, hr = get_partition_info()
+    cluster_size, partition_id, host_resources = get_partition_info()
     if cluster_size == 0:
         return
     # print(f"post-processing: {idx_data} {keys} {cluster_size} {partition_id}")
-    capable_strategies = [x for x in repl_strategies.rawData() if hr.has_capacity(x.requirements)]
+    capable_strategies = [x for x in repl_strategies.rawData() if host_resources.has_capacity(x.requirements)]
     owned_strategies = [x for x in capable_strategies if hash(x) % cluster_size == partition_id]
     sym_map = dict()
     for s in owned_strategies:
