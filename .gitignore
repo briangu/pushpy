@@ -2,3 +2,7 @@
 /push/archive/examples/d.pyz
 __pycache__
 .idea/**
+deploy/docker/tensorflow/install-projects.sh
+deploy/docker/tensorflow/requirements.txt
+deploy/docker/python3.8/install-projects.sh
+deploy/docker/python3.8/requirements.txt
