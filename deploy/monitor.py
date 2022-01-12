@@ -43,7 +43,7 @@ class MainCtrl:
     # thread_token = "token"
 
 
-def main_thread(args, mainctrl, log):
+def main_thread(args, remaining_args, mainctrl, log):
     verbose = False
 
     if hasattr(args, 'verbose'):
@@ -55,19 +55,20 @@ def main_thread(args, mainctrl, log):
     try:
         with open(main_path, "r") as f:
             module_name = f.read()
-        load_and_run(tmp_path, module_name, log, mainctrl)
+        print(remaining_args)
+        load_and_run(tmp_path, module_name, log, mainctrl, *remaining_args)
     except KeyboardInterrupt as ke:
         if verbose:
             log.warning("Interrupting...")
     except Exception as e:
-        if verbose:
-            import traceback
-            traceback.print_exc()
-            log.error("Exception:{0}".format(str(e)))
+        # if verbose:
+        import traceback
+        traceback.print_exc()
+        log.error("Exception:{0}".format(str(e)))
     log.info("Exiting...")
 
 
-def daemon_start(args):
+def daemon_start(args, remaining_args):
     mainctrl = MainCtrl()
 
     def main_thread_stop(signum=None, frame=None):
@@ -107,10 +108,10 @@ def daemon_start(args):
                                     level=logging.INFO)
 
                 log = logging.getLogger(__name__)
-                main_thread(args, mainctrl, log)
+                main_thread(args, remaining_args, mainctrl, log)
 
 
-def daemon_restart(args):
+def daemon_restart(args, remaining_args):
     print("INFO: {0} Restarting...".format(args.name))
     daemon_stop(args)
 
@@ -123,7 +124,7 @@ def daemon_restart(args):
     daemon_start(args)
 
 
-def daemon_stop(args):
+def daemon_stop(args, remaining_args):
     print("INFO: {0} Stopping with args {1}".format(args.name, args))
     if os.path.exists(pidpath):
         with open(pidpath) as pid:
@@ -136,7 +137,7 @@ def daemon_stop(args):
         print("ERROR: process isn't running (according to the absence of {0}).".format(pidpath))
 
 
-def daemon_debug(args):
+def daemon_debug(args, remaining_args):
     print("INFO: running in debug mode.")
     if not os.path.exists(main_path):
         with open(main_path, "w") as f:
@@ -146,7 +147,7 @@ def daemon_debug(args):
     main_thread(args, mainctrl, log)
 
 
-def daemon_status(args):
+def daemon_status(args, remaining_args):
     print("INFO: {0} Status {1}".format(args.name, args))
     if os.path.exists(pidpath):
         print("INFO: {0} is running".format(args.name))
@@ -160,7 +161,7 @@ sp_start.set_defaults(callback=daemon_start)
 sp_restart.set_defaults(callback=daemon_restart)
 sp_debug.set_defaults(callback=daemon_debug)
 
-args = parser.parse_args()
+args, remaining_args = parser.parse_known_args()
 
 tmp_path = os.path.join(PATHCTRL, args.name)
 ensure_path(tmp_path)
@@ -172,6 +173,6 @@ pidpath = os.path.join(tmp_path, args.name + ".pid")
 main_path = os.path.join(tmp_path, args.name + ".main.path")
 
 if hasattr(args, 'callback'):
-    args.callback(args)
+    args.callback(args, remaining_args)
 else:
     parser.print_help()

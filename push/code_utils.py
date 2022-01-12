@@ -147,6 +147,7 @@ def load_and_run(tmp_path, m, log, *args, **kwargs):
     if 'main' not in context:
         log.error(f"missing main function in module: {m}")
         raise RuntimeError(f"missing main function in module: {m}")
+    print(args, kwargs)
     context['main'](*args, **kwargs)
 
 

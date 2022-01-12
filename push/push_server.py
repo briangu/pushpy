@@ -1,6 +1,7 @@
-def main():
+def main(_, boot_module_src, syncobj_host, auth_key, peers=None):
+    peers = peers or []
+    print("here", boot_module_src, syncobj_host, auth_key, peers)
     import asyncio
-    import sys
     import time
 
     import tornado.httpserver
@@ -13,15 +14,14 @@ def main():
     from push.push_manager import PushManager
     from push.push_server_utils import serve_forever, host_to_address
 
-    boot_module_src = sys.argv[1]
-    gpu_capabilities = sys.argv[2]
-    syncobj_host = sys.argv[3]
+    # boot_module_src = sys.argv[1]
+    # syncobj_host = sys.argv[2]
     base_host = syncobj_host.split(":")[0]
     base_port = int(syncobj_host.split(":")[1])
     mgr_port = (base_port % 1000) + 50000
     mgr_host = f"{base_host}:{mgr_port}"
-    partners = sys.argv[4:]
-    auth_key = b'password'
+    # peers = sys.argv[4:]
+    # auth_key = b'password'
 
     class DoRegistry:
         def apply(self):
@@ -31,14 +31,12 @@ def main():
     boot_mod = load_in_memory_module(boot_module_src, name="boot_mod")
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
-    sync_obj = SyncObj(syncobj_host, partners, consumers=[repl_hosts, *boot_consumers])
+    sync_obj = SyncObj(syncobj_host, peers, consumers=[repl_hosts, *boot_consumers])
 
     l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
     l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
 
     host_resources = HostResources.create(host_id=sync_obj.selfNode.id, mgr_host=mgr_host)
-    # fake GPU presence for testing
-    host_resources.gpu = GPUResources(count=1 if 'GPU' in gpu_capabilities else 0)
 
     boot_globals['host_id'] = host_resources.host_id
     boot_globals['get_cluster_info'] = l_get_cluster_info
@@ -91,4 +89,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    boot_module_src = sys.argv[1]
+    syncobj_host = sys.argv[2]
+    base_host = syncobj_host.split(":")[0]
+    base_port = int(syncobj_host.split(":")[1])
+    mgr_port = (base_port % 1000) + 50000
+    mgr_host = f"{base_host}:{mgr_port}"
+    auth_key = b'password'
+    peers = sys.argv[3:]
+    main(None, boot_module_src, syncobj_host, auth_key, peers)
