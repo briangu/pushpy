@@ -1,0 +1,35 @@
+aiofiles == 0.6.0
+aiohttp-sse-client == 0.2.0
+aiohttp~=3.7.4.post0
+aiopg == 1.1.0
+aioprocessing == 1.1.0
+aiostream == 0.4.1
+boto3~=1.17.26
+colorama == 0.4.4
+kafka_python == 1.4.7
+keras~=2.6
+matplotlib~=3.3.4
+numpy~=1.19.5
+pandas~=1.1.5
+psycopg2 == 2.8.6
+python-rocksdb
+pyex == 0.3.0
+pyex-caching == 0.0.3
+pyex-studies == 0.1.0
+pyex-zipline == 0.0.7
+pytz == 2020.5
+robinhood_aiokafka == 1.1.6
+setuptools == 51.1.2
+sklearn
+keras-tuner~=1.0.2
+msgpack
+stable_baselines3~=1.0
+gym~=0.18.0
+stockstats~=0.3.2
+statsmodels~=0.12.2
+git+https://github.com/briangu/graph.git
+git+https://github.com/briangu/arctic.git
+git+https://github.com/briangu/faust.git
+git+https://github.com/briangu/pyEX.git
+git+https://github.com/briangu/alpaca-trade-api-python.git
+

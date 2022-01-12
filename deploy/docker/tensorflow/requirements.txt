@@ -8,3 +8,6 @@ psutil~=5.8.0
 PyGithub
 GPUtil~=1.4.0
 schedule~=1.1.0
+numpy~=1.21.4
+pandas~=1.3.5
+git+https://github.com/briangu/push.git
