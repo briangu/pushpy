@@ -1,5 +1,12 @@
 #!/bin/bash
 
+cp install-projects.sh $1
+
+# build the composite requirements.txt
+cat ../../requirements.txt > $1/requirements.txt
+cat ../../push/examples/requirements.txt > $1/requirements.txt
+cat base_requirements.txt > $1/requirements.txt
+
 source $1/config.sh
 
 maintainer="$DOCKER_IMAGE_MAINTAINER"
