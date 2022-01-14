@@ -56,20 +56,10 @@ ability to run client code that references replicated data structures.
   - Applications can have tasks which use ML on GPU-capable hosts
   - ML inference engines can publish back into the shared state
 
-# Quick start
-Start example cluster and launch REPL.
-```bash
-$ export PUSH_HOME=`pwd`
-$ ./push/examples/run_cluster.sh
-> hosts
-['localhost:50000', 'localhost:50001', 'localhost:50002']
->>> @localhost:50000
-localhost:50000 >>> 
-```
+# Quick start w/ Docker
 
-Now you can run examples against a 3-node cluster.
-
-# Quick start Docker
+To get an idea of how reverse proxy across a Push cluster would behave, startup a 3 node cluster and load a web requests handler.  
+Each node gets a copy of the compiled Python and serves it up as the root handler.  
 
 _Note: this requires docker-compose_
 
@@ -77,8 +67,8 @@ _Note: this requires docker-compose_
 Setup 3 Push nodes w/ nginx reverse proxy.
 
 ```
-$ cd $PUSH_HOME/deploy/compose
-$ ./app.sh push-cluster.yml up
+$ cd $PUSH_HOME/deploy/examples/compose
+$ ./launch.sh push-cluster.yml up
 ```
 
 #### console 2
@@ -87,6 +77,10 @@ Load a handler for the main root and let ngnix hit one of the 3 Push nodes.
 $ cd $PUSH_HOME/push/examples/web
 $ python3 c_hello.py
 $ curl localhost:4000/
+hello, world!!!! [0]
+$ python3 c_hello_2.py
+$ curl localhost:4000/
+Hello, World! (v2) [1]
 ```
 
 # Versioned Web Handler Example
@@ -235,6 +229,20 @@ print(r)
 assert r == 36
 
 ```
+
+# Quick start (bare)
+Start example cluster and launch REPL.
+```bash
+$ export PUSH_HOME=`pwd`
+$ ./push/deploy/examples/bare/run_cluster.sh
+> hosts
+['localhost:50000', 'localhost:50001', 'localhost:50002']
+>>> @localhost:50000
+localhost:50000 >>> 
+```
+
+Now you can run examples against a 3-node cluster.
+
 
 # Some caveats
 

@@ -1,0 +1,67 @@
+version: '3.4'
+services:
+  push-tf-1:
+    container_name: "push-tf-1"
+    hostname: "push-tf-1"
+    tty: true
+    image: eismcc/push-tensorflow-gpu:latest
+    expose:
+      - '10000'
+      - '11000'
+      - '50000'
+    ports:
+      - "50000:50000"
+    env_file:
+      - ./envs/push.env
+    volumes:
+      - ./conf/push.conf.1.yml:/opt/push/conf/push.conf.yml
+      - $PUSH_HOME:/scm/push
+    command: ["python","/scm/push/push/push_server.py /opt/push/conf/push.conf.yml"]
+
+  push-tf-2:
+    container_name: "push-tf-2"
+    hostname: "push-tf-2"
+    tty: true
+    image: eismcc/push-tensorflow-gpu:latest
+    expose:
+      - '10000'
+      - '11000'
+      - '50000'
+    env_file:
+      - ./envs/push.env
+    volumes:
+      - ./conf/push.conf.2.yml:/opt/push/conf/push.conf.yml
+      - $PUSH_HOME:/scm/push
+    depends_on:
+      - push-tf-1
+    command: ["python","/scm/push/push/push_server.py /opt/push/conf/push.conf.yml"]
+
+  push-tf-3:
+    container_name: "push-tf-3"
+    hostname: "push-tf-3"
+    tty: true
+    image: eismcc/push-tensorflow-gpu:latest
+    expose:
+      - '10000'
+      - '11000'
+      - '50000'
+    env_file:
+      - ./envs/push.env
+    volumes:
+      - ./conf/push.conf.3.yml:/opt/push/conf/push.conf.yml
+      - $PUSH_HOME:/scm/push
+    depends_on:
+      - push-tf-1
+    command: ["python","/scm/push/push/push_server.py /opt/push/conf/push.conf.yml"]
+
+  nginx:
+    container_name: "push_nginx"
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - push-tf-1
+      - push-tf-2
+      - push-tf-3
+    ports:
+      - "4000:4000"
