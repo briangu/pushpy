@@ -69,7 +69,7 @@ localhost:50000 >>>
 
 Now you can run examples against a 3-node cluster.
 
-# Quickstart Docker
+# Quick start Docker
 
 Setup 3 Push nodes w/ nginx reverse proxy
 
