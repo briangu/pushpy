@@ -71,19 +71,22 @@ Now you can run examples against a 3-node cluster.
 
 # Quick start Docker
 
-Setup 3 Push nodes w/ nginx reverse proxy
+_Note: this requires docker-compose_
 
-console 1
+#### console 1
+Setup 3 Push nodes w/ nginx reverse proxy.
+
 ```
 $ cd $PUSH_HOME/deploy/compose
 $ ./app.sh push-cluster.yml up
 ```
 
-console 2
+#### console 2
+Load a handler for the main root and let ngnix hit one of the 3 Push nodes.
 ```
 $ cd $PUSH_HOME/push/examples/web
 $ python3 c_hello.py
-$ curl localhost:4000
+$ curl localhost:4000/
 ```
 
 # Versioned Web Handler Example
