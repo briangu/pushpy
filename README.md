@@ -69,6 +69,23 @@ localhost:50000 >>>
 
 Now you can run examples against a 3-node cluster.
 
+# Quickstart Docker
+
+Setup 3 Push nodes w/ nginx reverse proxy
+
+console 1
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./app.sh push-cluster.yml up
+```
+
+console 2
+```
+$ cd $PUSH_HOME/push/examples/web
+$ python3 c_hello.py
+$ curl localhost:4000
+```
+
 # Versioned Web Handler Example
 
 The following is a simple example of how the versioned dictionary can be used to version the root web handler.

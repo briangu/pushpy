@@ -1,2 +1,2 @@
 # ./build.sh tensorflow
-docker run -v $PUSH_HOME:/scm/push -it push/push-tensorflow-gpu:latest bash
+docker run -v $PUSH_HOME:/scm/push -it eismcc/push-tensorflow-gpu:latest bash

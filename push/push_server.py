@@ -1,6 +1,9 @@
-def main():
+from pysyncobj import SyncObjConf
+
+
+def main(config_fname):
     import asyncio
-    import sys
+    import socket
     import time
 
     import tornado.httpserver
@@ -11,17 +14,20 @@ def main():
     from push.code_utils import load_in_memory_module, create_in_memory_module
     from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
     from push.push_manager import PushManager
-    from push.push_server_utils import serve_forever, host_to_address
+    from push.push_server_utils import load_config, serve_forever, host_to_address
 
-    boot_module_src = sys.argv[1]
-    gpu_capabilities = sys.argv[2]
-    syncobj_host = sys.argv[3]
-    base_host = syncobj_host.split(":")[0]
-    base_port = int(syncobj_host.split(":")[1])
-    mgr_port = (base_port % 1000) + 50000
+    config = load_config(config_fname)
+    boot_module_src = config['boot_source_uri']
+    gpu_count = (((config.get('host_resources') or {}).get('gpu')) or {}).get('count')
+    base_host = config.get('hostname') or 'localhost' #socket.gethostname()
+    sync_obj_port = int(config['sync_obj']['port'])
+    sync_obj_host = f"{base_host}:{sync_obj_port}"
+    mgr_port = int(config['manager'].get('port') or (sync_obj_port % 1000) + 50000)
     mgr_host = f"{base_host}:{mgr_port}"
-    partners = sys.argv[4:]
-    auth_key = b'password'
+    mgr_auth_key = (config['manager'].get('auth_key') or 'password').encode('utf8')
+    sync_obj_peers = config['sync_obj'].get('peers') or []
+    sync_obj_password = config['sync_obj']['password'].encode('utf-8') if 'password' in config['sync_obj'] else None
+    web_port = int((config.get('web') or {}).get('port') or (sync_obj_port % 1000) + 11000)
 
     class DoRegistry:
         def apply(self):
@@ -31,14 +37,16 @@ def main():
     boot_mod = load_in_memory_module(boot_module_src, name="boot_mod")
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
-    sync_obj = SyncObj(syncobj_host, partners, consumers=[repl_hosts, *boot_consumers])
+    sync_obj_config = SyncObjConf(password=sync_obj_password, dynamicMembershipChange=True)
+    sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=sync_obj_config)
 
     l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
     l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
 
     host_resources = HostResources.create(host_id=sync_obj.selfNode.id, mgr_host=mgr_host)
-    # fake GPU presence for testing
-    host_resources.gpu = GPUResources(count=1 if 'GPU' in gpu_capabilities else 0)
+    # override GPU presence if desired
+    if gpu_count is not None:
+        host_resources.gpu = GPUResources(count=gpu_count)
 
     boot_globals['host_id'] = host_resources.host_id
     boot_globals['get_cluster_info'] = l_get_cluster_info
@@ -66,7 +74,7 @@ def main():
         print(f"connecting to cluster...")
         time.sleep(0.1)
 
-    m = PushManager(address=host_to_address(mgr_host), authkey=auth_key)
+    m = PushManager(address=host_to_address(mgr_host), authkey=mgr_auth_key)
     mgmt_server = m.get_server()
     mt = serve_forever(mgmt_server)
 
@@ -74,7 +82,6 @@ def main():
         mt.join()
     else:
         webserver = tornado.httpserver.HTTPServer(web_router)
-        web_port = (base_port % 1000) + 11000
         print(f"starting webserver @ {web_port}")
         webserver.listen(web_port)
 
@@ -91,4 +98,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv[1])

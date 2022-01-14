@@ -1,0 +1,11 @@
+version: '1'
+boot_source_uri: 'file:///scm/push/push/examples/ex_boot.py'
+hostname: 'push-tf-1'
+manager:
+    auth_key: 'password'
+sync_obj:
+    port: 10000
+    peers:
+        - push-tf-2:10000
+        - push-tf-3:10000
+

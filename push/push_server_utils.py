@@ -19,3 +19,15 @@ def serve_forever(mgmt_server):
         import traceback
         traceback.print_exc()
         print(e)
+
+
+def load_config(config_fname):
+    import yaml
+
+    with open(config_fname, "r") as stream:
+        try:
+            return yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    return None

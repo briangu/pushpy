@@ -1,0 +1,9 @@
+version: '1'
+boot_source_uri: 'file:///home/brian/scm/push/push/examples/ex_boot.py'
+manager:
+    auth_key: 'password'
+sync_obj:
+    port: 10002
+    peers:
+        - localhost:10000
+        - localhost:10001
