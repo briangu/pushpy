@@ -1,7 +1,7 @@
 import time
 
 from examples.ex_push_manager import ExamplePushManager
-from timeseries.data_generator import DataGeneratorTask
+from examples.timeseries.data_generator import DataGeneratorTask
 
 m = ExamplePushManager()
 m.connect()

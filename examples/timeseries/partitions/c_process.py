@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 from examples.ex_push_manager import ExamplePushManager
-from timeseries.data_generator import DataGeneratorTask
+from examples.timeseries.data_generator import DataGeneratorTask
 from push.host_resources import HostRequirements, GPURequirements
 from timeseries.partitions.strategy import Strategy
 
