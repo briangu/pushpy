@@ -27,6 +27,9 @@ ability to run client code that references replicated data structures.
   - Only need to deploy the Push servers
   - Doesn't need Docker (particularly important for older ARM systems that can't run docker)
   - Configurable 'boot' module that sets up app context
+- Simple cluster bootstrapping 
+  - Secondary nodes bootstrap off primary's config
+  - Minimal configuration required
 - Developer productivity
   - Simple self-contained system
   - Instant, zero-down-time, code deploys
@@ -228,6 +231,44 @@ print(r)
 assert r == 36
 
 ```
+
+# Docker deploy primary and secondaries on other machines
+
+Push supports auto-config of new nodes by bootstrapping off of a primary (existing) node.  The bootstrap process provides all of the code and network setup for the new node and adds it to the cluster.
+
+deploy primary
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./primary.sh up
+```
+
+deploy a bootstrap node (on another machine)
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./bootstrap.sh up
+```
+
+
+# Docker multiple nodes on a single machine
+
+deploy primary
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./primary.sh up
+```
+
+deploy a secondary node
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./secondary.sh up
+```
+
+deploy another secondary node
+```
+$ cd $PUSH_HOME/deploy/compose
+$ ./secondary-2.sh up
+```
+
 
 # Quick start (bare)
 Start example cluster and launch REPL.

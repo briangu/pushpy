@@ -1,21 +1,20 @@
-import asyncio
-import socket
-import time
-
-import dill
-import tornado.httpserver
-import tornado.web
-from pysyncobj import SyncObj, SyncObjConsumer
-from pysyncobj import SyncObjConf
-
-from push.batteries import ReplLockDataManager
-from push.code_utils import load_in_memory_module, create_in_memory_module
-from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
-from push.push_manager import PushManager
-from push.push_server_utils import load_config, serve_forever, host_to_address
-
-
 def main(config_fname):
+    import asyncio
+    import socket
+    import time
+
+    import dill
+    import tornado.httpserver
+    import tornado.web
+    from pysyncobj import SyncObj, SyncObjConsumer
+    from pysyncobj import SyncObjConf
+
+    from push.batteries import ReplLockDataManager
+    from push.code_utils import load_in_memory_module, create_in_memory_module
+    from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
+    from push.push_manager import PushManager
+    from push.push_server_utils import load_config, serve_forever, host_to_address
+
     config = load_config(config_fname)
     config_bootstrap = config['bootstrap']
     config_manager = config['manager']
@@ -65,19 +64,28 @@ def main(config_fname):
         bootstrap_primary.apply(sync_obj_host)
 
     class DoBootstrapPeer:
-        host_port_map = dict()
+        def get_host_map(self, hosts):
+            print(hosts)
+            host_port_map = dict()
+            for host in hosts:
+                h, p = host.address.split(":")
+                arr = host_port_map.get(h)
+                if arr is None:
+                    arr = []
+                    host_port_map[h] = arr
+                arr.append(int(p))
+            print(host_port_map)
+            return host_port_map
 
         def get_config(self, hostname, default_base_port):
-            host_ports = self.host_port_map.get(hostname)
-            if host_ports is None:
-                host_ports = []
-                self.host_port_map[hostname] = host_ports
+            hosts = [sync_obj.selfNode, *sync_obj.otherNodes]
+            host_port_map = self.get_host_map(hosts)
+            host_ports = host_port_map.get(hostname, [])
             host_port = max(host_ports) + 1 if default_base_port in host_ports else default_base_port
-            host_ports.append(host_port)
             return {
                 "base_port": host_port,
                 "sync_obj_config": {
-                    'peers': [x.address for x in [sync_obj.selfNode, *sync_obj.otherNodes]],
+                    'peers': [x.address for x in hosts],
                     'password': sync_obj_password
                 },
                 "boot_src": dill.dumps(boot_src)
@@ -86,7 +94,6 @@ def main(config_fname):
         def apply(self, peer_address):
             print(f"adding node to cluster: {peer_address}")
             sync_obj.addNodeToCluster(peer_address)
-            print(f"registered peer: {peer_address}")
 
     l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
     l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
