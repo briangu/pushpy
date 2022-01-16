@@ -1,5 +1,5 @@
 from setuptools import setup
-from push.version import VERSION
+import push
 
 description = 'A library for enabling dynamic distributed python deployment'
 try:
@@ -10,9 +10,9 @@ except(IOError, ImportError, RuntimeError):
     long_description = description
 
 setup(
-    name='push',
+    name='pushcode',
     packages=['push'],
-    version=VERSION,
+    version=push.__version__,
     description=description,
     long_description=long_description,
     author='Brian Guarraci',

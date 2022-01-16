@@ -96,7 +96,7 @@ is changed, it will automatically be used.
 import requests
 import tornado.web
 
-from push.examples.ex_push_manager import ExamplePushManager
+from examples.ex_push_manager import ExamplePushManager
 
 m = ExamplePushManager()
 m.connect()
@@ -107,8 +107,8 @@ web_url = "http://localhost:11000/"
 
 
 class HelloWorldHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write(f"hello, world!!!! head=[{repl_code_store.get_head()}]\n")
+  def get(self):
+    self.write(f"hello, world!!!! head=[{repl_code_store.get_head()}]\n")
 
 
 repl_code_store.set("/web/", HelloWorldHandler, sync=True)
@@ -116,8 +116,9 @@ print(requests.get(web_url).text)
 
 
 class HelloWorldHandler2(tornado.web.RequestHandler):
-    def get(self):
-        self.write(f"Hello, World! (v2) head=[{repl_code_store.get_head()}]\n")
+  def get(self):
+    self.write(f"Hello, World! (v2) head=[{repl_code_store.get_head()}]\n")
+
 
 # update and change to v2
 repl_code_store.set("/web/", HelloWorldHandler2, sync=True)
@@ -127,7 +128,7 @@ print(requests.get(web_url).text)
 repl_code_store.set_head(version=repl_code_store.get_head() - 1, sync=True)
 print(requests.get(web_url).text)
 ```
-[code](push/examples/web/c_hello_versioned.py)
+[code](examples/web/c_hello_versioned.py)
 
 ```
 $ python3 $PUSH_HOME/push/examples/web/c_hello_versioned.py
@@ -147,25 +148,25 @@ hello, world!!!! head=[0]
 _a note on notation: 'repl' is used to denote 'replicated'_
 
 - Web: Tornado based examples showing code loading via code store path
-  - [Hello, World](push/examples/web/c_hello.py)
-  - [Versioned Hello, World](push/examples/web/c_hello_versioned.py)
+  - [Hello, World](examples/web/c_hello.py)
+  - [Versioned Hello, World](examples/web/c_hello_versioned.py)
 - Code repo: Showing how the vdict is used to store and version code
-  - [import](push/examples/code_repo/import)
-  - [export](push/examples/code_repo/export)
-  - [versioning](push/examples/code_repo/c_versions.py)
-  - [module loader](push/examples/code_repo/c_module.py)
-- [Versioned Dictionary (vdict)](push/examples/versioned_dict)
-- [Tasks](push/examples/tasks)
-  - [daemon](push/examples/tasks/daemon)
-    - [local](push/examples/tasks/daemon/local)
-      - [Hello, World](push/examples/tasks/daemon/local/c_hello.py)
-      - [module](push/examples/tasks/daemon/local/c_module.py)
-    - [replicated](push/examples/tasks/daemon/c_repl.py)
-  - [lambda](push/examples/tasks/lambda)
-  - [schedule](push/examples/tasks/schedule)
-  - [scope](push/examples/tasks/scope)
+  - [import](examples/code_repo/import)
+  - [export](examples/code_repo/export)
+  - [versioning](examples/code_repo/c_versions.py)
+  - [module loader](examples/code_repo/c_module.py)
+- [Versioned Dictionary (vdict)](examples/versioned_dict)
+- [Tasks](examples/tasks)
+  - [daemon](examples/tasks/daemon)
+    - [local](examples/tasks/daemon/local)
+      - [Hello, World](examples/tasks/daemon/local/c_hello.py)
+      - [module](examples/tasks/daemon/local/c_module.py)
+    - [replicated](examples/tasks/daemon/c_repl.py)
+  - [lambda](examples/tasks/lambda)
+  - [schedule](examples/tasks/schedule)
+  - [scope](examples/tasks/scope)
 - Queues
-- [Timeseries](push/examples/timeseries)
+- [Timeseries](examples/timeseries)
   - simple
   - partitioned handlers
 - [REPL](push/push_repl.py)
@@ -185,8 +186,8 @@ The following example shows the dynamic module system being able to load a modul
 code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
 
 ```python
-from push.examples.ex_push_manager import ExamplePushManager
-from push.examples.simple_interpreter import Multiplier, Adder, Interpreter
+from examples.ex_push_manager import ExamplePushManager
+from simple_interpreter import Multiplier, Adder, Interpreter
 
 m = ExamplePushManager()
 m.connect()
@@ -195,9 +196,9 @@ local_tasks = m.local_tasks()
 
 repl_code_store = m.repl_code_store()
 repl_code_store.update({
-    "interpreter.Interpreter": Interpreter,
-    "interpreter.math.Adder": Adder,
-    "interpreter.math.Multiplier": Multiplier
+  "interpreter.Interpreter": Interpreter,
+  "interpreter.math.Adder": Adder,
+  "interpreter.math.Multiplier": Multiplier
 }, sync=True)
 
 ops = ['add', 'add', 1, 2, 'mul', 3, 4]
@@ -209,9 +210,9 @@ assert r == 15
 
 
 class Adder2(Adder):
-    def apply(self, a, b):
-        print("using adder v2")
-        return (a + b) * 2
+  def apply(self, a, b):
+    print("using adder v2")
+    return (a + b) * 2
 
 
 repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
@@ -221,9 +222,9 @@ assert r == 36
 
 
 class InterpreterWrapper:
-    def apply(self, ops):
-        from repl_code_store.interpreter import Interpreter
-        return Interpreter().apply(ops)
+  def apply(self, ops):
+    from repl_code_store.interpreter import Interpreter
+    return Interpreter().apply(ops)
 
 
 r = local_tasks.apply(InterpreterWrapper, ops)[0]

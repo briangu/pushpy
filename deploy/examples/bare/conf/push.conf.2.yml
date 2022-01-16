@@ -1,5 +1,5 @@
 version: '1'
-boot_source_uri: 'file:///home/brian/scm/push/push/examples/ex_boot.py'
+boot_source_uri: 'file:///home/brian/scm/push/examples/ex_boot.py'
 manager:
     auth_key: 'password'
 sync_obj:

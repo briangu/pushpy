@@ -40,8 +40,8 @@ RUN pip install --upgrade pip==21.0.1
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
-COPY install-projects.sh /tmp/install-projects.sh
+COPY entrypoint.sh /tmp/entrypoint.sh
 
 WORKDIR /scm 
 
-ENTRYPOINT ["/tmp/install-projects.sh"]
+ENTRYPOINT ["/tmp/entrypoint.sh"]

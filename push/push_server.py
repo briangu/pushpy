@@ -45,10 +45,9 @@ def main(config_fname):
     manager_port = int(config_manager.get('port') or (sync_obj_port % 1000) + 50000)
     web_port = int((config.get('web') or {}).get('port') or (sync_obj_port % 1000) + 11000)
     sync_obj_host = f"{base_host}:{sync_obj_port}"
-    print(f"sync_obj_host: {sync_obj_host} sync_obj_password: {sync_obj_password} peers:{sync_obj_peers}")
     manager_host = f"{base_host}:{manager_port}"
+    print(f"sync_obj_host: {sync_obj_host} peers:{sync_obj_peers}")
     print(f"manager_host: {manager_host}")
-    gpu_count = (((config.get('host_resources') or {}).get('gpu')) or {}).get('count')
 
     class DoRegistry:
         def apply(self):
@@ -100,6 +99,7 @@ def main(config_fname):
 
     host_resources = HostResources.create(host_id=sync_obj.selfNode.id, mgr_host=manager_host)
     # override GPU presence if desired
+    gpu_count = (((config.get('host_resources') or {}).get('gpu')) or {}).get('count')
     if gpu_count is not None:
         host_resources.gpu = GPUResources(count=gpu_count)
 

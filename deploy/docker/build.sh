@@ -1,9 +1,7 @@
 #!/bin/bash
 
-cp install-projects.sh $1
-
 # build the composite requirements.txt
-./mkreq.sh $1
+$1/mkreq.sh $1
 
 source $1/config.sh
 

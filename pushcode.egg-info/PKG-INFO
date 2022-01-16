@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: pushcode
+Version: 0.1.0
+Summary: A library for enabling dynamic distributed python deployment
+Home-page: https://github.com/briangu/push
+Author: Brian Guarraci
+Author-email: brian@ops5.com
+License: MIT
+Keywords: network,replication,raft,synchronization,application
+Platform: UNKNOWN
+Classifier: Topic :: System :: Networking
+Classifier: Topic :: System :: Distributed Computing
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: License :: OSI Approved :: MIT License
+License-File: LICENSE.txt
+
+A library for enabling dynamic distributed python deployment
+
