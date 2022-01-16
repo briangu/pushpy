@@ -32,6 +32,7 @@ setup(
     entry_points={
         'console_scripts': [
             'push_repl=push.push_repl:main',
+            'push_server=push.push_server:main',
         ],
     },
 )

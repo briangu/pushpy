@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 def main(config_fname):
     import asyncio
     import socket
