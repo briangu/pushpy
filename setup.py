@@ -10,7 +10,7 @@ except(IOError, ImportError, RuntimeError):
     long_description = description
 
 setup(
-    name='pushcode',
+    name='push',
     packages=['push'],
     version=push.__version__,
     description=description,
