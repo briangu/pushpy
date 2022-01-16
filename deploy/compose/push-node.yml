@@ -1,0 +1,18 @@
+version: '3.4'
+services:
+  push-tf-node-primary:
+    container_name: "push-tf-node-primary"
+    hostname: "push-tf-node"
+    tty: true
+    image: eismcc/push-tensorflow-gpu:latest
+    expose:
+      - '10000'
+      - '11000'
+      - '50000'
+    env_file:
+      - ./envs/push.env
+    volumes:
+      - ./conf/push.${PUSH_NODE_TYPE}.conf.yml:/opt/push/conf/push.conf.yml
+      - $PUSH_HOME:/scm/push
+    command: ["python","/scm/push/push/push_server.py /opt/push/conf/push.conf.yml"]
+    network_mode: host

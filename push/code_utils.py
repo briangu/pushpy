@@ -1,7 +1,9 @@
+import json
 import os
 import sys
 import uuid
 import zipfile
+from json import JSONDecodeError
 from types import ModuleType
 
 import dill
@@ -70,6 +72,14 @@ def compile_source(t):
     elif t.startswith("http"):
         return compile_uri(t)
     return compile(t, str(uuid.uuid4()), "exec")
+
+
+def load_uri(u):
+    f = requests.get(u)
+    try:
+        return json.loads(f.text)
+    except JSONDecodeError:
+        return f.text
 
 
 def load_dir(tmp_path, m):
@@ -166,9 +176,9 @@ def load_in_memory_module(src, name=None):
     name = name or str(uuid.uuid4())
     mod = types.ModuleType(name)
     sys.modules[name] = mod
-    s = compile_source(src)
+    s = src if isinstance(src, types.CodeType) else compile_source(src)
     exec(s, mod.__dict__)
-    return mod
+    return mod, s
 
 
 def load_src(kvstore, src):

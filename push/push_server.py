@@ -1,49 +1,97 @@
+import asyncio
+import socket
+import time
+
+import dill
+import tornado.httpserver
+import tornado.web
+from pysyncobj import SyncObj, SyncObjConsumer
 from pysyncobj import SyncObjConf
+
+from push.batteries import ReplLockDataManager
+from push.code_utils import load_in_memory_module, create_in_memory_module
+from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
+from push.push_manager import PushManager
+from push.push_server_utils import load_config, serve_forever, host_to_address
 
 
 def main(config_fname):
-    import asyncio
-    import socket
-    import time
-
-    import tornado.httpserver
-    import tornado.web
-    from pysyncobj import SyncObj, SyncObjConsumer
-
-    from push.batteries import ReplLockDataManager
-    from push.code_utils import load_in_memory_module, create_in_memory_module
-    from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
-    from push.push_manager import PushManager
-    from push.push_server_utils import load_config, serve_forever, host_to_address
-
     config = load_config(config_fname)
-    boot_module_src = config['boot_source_uri']
-    gpu_count = (((config.get('host_resources') or {}).get('gpu')) or {}).get('count')
-    base_host = config.get('hostname') or 'localhost' #socket.gethostname()
-    sync_obj_port = int(config['sync_obj']['port'])
-    sync_obj_host = f"{base_host}:{sync_obj_port}"
-    mgr_port = int(config['manager'].get('port') or (sync_obj_port % 1000) + 50000)
-    mgr_host = f"{base_host}:{mgr_port}"
-    mgr_auth_key = (config['manager'].get('auth_key') or 'password').encode('utf8')
-    sync_obj_peers = config['sync_obj'].get('peers') or []
-    sync_obj_password = config['sync_obj']['password'].encode('utf-8') if 'password' in config['sync_obj'] else None
+    config_bootstrap = config['bootstrap']
+    config_manager = config['manager']
+    manager_auth_key = (config_manager.get('auth_key') or 'password').encode('utf8')
+    base_host = config.get('hostname') or socket.gethostname()
+
+    if 'manager_host' in config_bootstrap:
+        bootstrap_manager_host = config_bootstrap['manager_host']
+        print(f"bootstrapping config from {bootstrap_manager_host} {manager_auth_key}")
+        bootstrap_manager = PushManager(address=host_to_address(bootstrap_manager_host), authkey=manager_auth_key)
+        bootstrap_manager.connect()
+        bootstrap_primary = bootstrap_manager.bootstrap_peer()
+        peer_config = bootstrap_primary.get_config(base_host, default_base_port=10001)
+        sync_obj_port = peer_config['base_port']
+        sync_obj_peers = peer_config['sync_obj_config']['peers']
+        sync_obj_password = peer_config['sync_obj_config']['password']
+        boot_src = dill.loads(peer_config['boot_src'])
+        boot_mod, _ = load_in_memory_module(boot_src, name="boot_mod")
+    else:
+        bootstrap_primary = None
+        boot_source_uri = config_bootstrap['boot_source_uri']
+        boot_mod, boot_src = load_in_memory_module(boot_source_uri, name="boot_mod")
+        config_sync_obj = config['sync_obj']
+        sync_obj_port = int(config_sync_obj.get('port') or 10000)
+        sync_obj_peers = config_sync_obj.get('peers') or []
+        sync_obj_password = config_sync_obj['password'].encode('utf-8') if 'password' in config_sync_obj else None
+
+    manager_port = int(config_manager.get('port') or (sync_obj_port % 1000) + 50000)
     web_port = int((config.get('web') or {}).get('port') or (sync_obj_port % 1000) + 11000)
+    sync_obj_host = f"{base_host}:{sync_obj_port}"
+    print(f"sync_obj_host: {sync_obj_host} sync_obj_password: {sync_obj_password} peers:{sync_obj_peers}")
+    manager_host = f"{base_host}:{manager_port}"
+    print(f"manager_host: {manager_host}")
+    gpu_count = (((config.get('host_resources') or {}).get('gpu')) or {}).get('count')
 
     class DoRegistry:
         def apply(self):
             return list(PushManager._registry.keys())
 
     repl_hosts = ReplLockDataManager(autoUnlockTime=5)
-    boot_mod = load_in_memory_module(boot_module_src, name="boot_mod")
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
-    sync_obj_config = SyncObjConf(password=sync_obj_password, dynamicMembershipChange=True)
-    sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=sync_obj_config)
+    sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=SyncObjConf(dynamicMembershipChange=True))
+
+    if bootstrap_primary is not None:
+        print(f"adding self to cluster {sync_obj_host}")
+        bootstrap_primary.apply(sync_obj_host)
+
+    class DoBootstrapPeer:
+        host_port_map = dict()
+
+        def get_config(self, hostname, default_base_port):
+            host_ports = self.host_port_map.get(hostname)
+            if host_ports is None:
+                host_ports = []
+                self.host_port_map[hostname] = host_ports
+            host_port = max(host_ports) + 1 if default_base_port in host_ports else default_base_port
+            host_ports.append(host_port)
+            return {
+                "base_port": host_port,
+                "sync_obj_config": {
+                    'peers': [x.address for x in [sync_obj.selfNode, *sync_obj.otherNodes]],
+                    'password': sync_obj_password
+                },
+                "boot_src": dill.dumps(boot_src)
+            }
+
+        def apply(self, peer_address):
+            print(f"adding node to cluster: {peer_address}")
+            sync_obj.addNodeToCluster(peer_address)
+            print(f"registered peer: {peer_address}")
 
     l_get_cluster_info = lambda: get_cluster_info(repl_hosts)
     l_get_partition_info = lambda: get_partition_info(repl_hosts, sync_obj)
 
-    host_resources = HostResources.create(host_id=sync_obj.selfNode.id, mgr_host=mgr_host)
+    host_resources = HostResources.create(host_id=sync_obj.selfNode.id, mgr_host=manager_host)
     # override GPU presence if desired
     if gpu_count is not None:
         host_resources.gpu = GPUResources(count=gpu_count)
@@ -54,6 +102,7 @@ def main(config_fname):
     boot_globals['host_resources'] = host_resources
 
     PushManager.register('sync_obj', callable=lambda: sync_obj)
+    PushManager.register('bootstrap_peer', callable=lambda: DoBootstrapPeer())
     PushManager.register('get_registry', callable=lambda: DoRegistry())
     PushManager.register("get_cluster_info", callable=lambda: l_get_cluster_info)
     PushManager.register("get_partition_info", callable=lambda: l_get_partition_info)
@@ -70,11 +119,12 @@ def main(config_fname):
 
     print(f"registering host: {sync_obj.selfNode.id}")
     sync_obj.waitReady()
+    print(f"bind complete: {sync_obj.selfNode.id}")
     while not repl_hosts.tryAcquire(sync_obj.selfNode.id, data=host_resources, sync=True):
         print(f"connecting to cluster...")
         time.sleep(0.1)
 
-    m = PushManager(address=host_to_address(mgr_host), authkey=mgr_auth_key)
+    m = PushManager(address=host_to_address(manager_host), authkey=manager_auth_key)
     mgmt_server = m.get_server()
     mt = serve_forever(mgmt_server)
 

@@ -1,0 +1,6 @@
+version: '1'
+bootstrap:
+    manager_host: localhost:50000
+hostname: 'localhost'
+manager:
+    auth_key: 'password'

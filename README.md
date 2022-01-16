@@ -58,8 +58,7 @@ ability to run client code that references replicated data structures.
 
 # Quick start w/ Docker
 
-To get an idea of how reverse proxy across a Push cluster would behave, startup a 3 node cluster and load a web requests handler.  
-Each node gets a copy of the compiled Python and serves it up as the root handler.  
+To get an idea of how reverse proxy across a Push cluster would behave, startup a 3 node cluster and load a web requests handler.  Each node gets a copy of the compiled Python and serves it up as the root handler.  Using the versioned dictionary, we can change the handler on the fly and see the curl output change.
 
 _Note: this requires docker-compose_
 

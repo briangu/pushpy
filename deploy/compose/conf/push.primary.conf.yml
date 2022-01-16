@@ -1,0 +1,11 @@
+version: '1'
+bootstrap:
+    boot_source_uri: 'file:///scm/push/push/examples/ex_boot.py'
+hostname: 'localhost'
+web:
+    port: 11000
+manager:
+    auth_key: 'password'
+    port: 50000
+sync_obj:
+    port: 10000
