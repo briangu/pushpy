@@ -1,9 +1,6 @@
 #!/bin/bash
 
-cd /scm/push
-pip install -e .
-
-cd /data
+cd /tmp
 
 echo $* 
 eval $*

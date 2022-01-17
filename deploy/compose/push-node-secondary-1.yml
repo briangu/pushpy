@@ -14,5 +14,5 @@ services:
     volumes:
       - ./conf/push.bootstrap.conf.yml:/opt/push/conf/push.conf.yml
       - $PUSH_HOME:/scm/push
-    command: ["python","/scm/push/push/push_server.py /opt/push/conf/push.conf.yml"]
+    command: ["push_server", "/opt/push/conf/push.conf.yml"]
     network_mode: host
