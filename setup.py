@@ -11,7 +11,7 @@ except(IOError, ImportError, RuntimeError):
 
 setup(
     name='push',
-    packages=['push'],
+    packages=['push', 'push_examples'],
     version=push.__version__,
     description=description,
     long_description=long_description,
