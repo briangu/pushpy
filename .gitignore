@@ -1,6 +1,5 @@
-/push.egg-info/
-/pushcode.egg-info/
+/*.egg-info/
 __pycache__
 .idea/**
-dist/**
-build/**
+/dist/**
+/build/**
