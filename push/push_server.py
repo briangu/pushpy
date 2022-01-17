@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-def main(config_fname):
+def main(config_fname=None):
     import asyncio
     import socket
     import time
@@ -16,6 +16,9 @@ def main(config_fname):
     from push.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
     from push.push_manager import PushManager
     from push.push_server_utils import load_config, serve_forever, host_to_address
+
+    if config_fname is None:
+        config_fname = sys.argv[1]
 
     config = load_config(config_fname)
     config_bootstrap = config['bootstrap']
