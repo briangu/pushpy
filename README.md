@@ -69,14 +69,14 @@ _Note: this requires docker-compose_
 Setup 3 Push nodes w/ nginx reverse proxy.
 
 ```
-$ cd $PUSH_HOME/deploy/push_examples/compose
+$ cd $PUSH_HOME/deploy/pushpy_examples/compose
 $ ./launch.sh push-cluster.yml up
 ```
 
 #### console 2
 Load a handler for the main root and let ngnix hit one of the 3 Push nodes.
 ```
-$ cd $PUSH_HOME/push/push_examples/web
+$ cd $PUSH_HOME/push/pushpy_examples/web
 $ python3 c_hello.py
 $ curl localhost:4000/
 hello, world!!!! [0]
@@ -96,7 +96,7 @@ is changed, it will automatically be used.
 import requests
 import tornado.web
 
-from push_examples.ex_push_manager import ExamplePushManager
+from pushpy_examples.ex_push_manager import ExamplePushManager
 
 m = ExamplePushManager()
 m.connect()
@@ -128,10 +128,10 @@ print(requests.get(web_url).text)
 repl_code_store.set_head(version=repl_code_store.get_head() - 1, sync=True)
 print(requests.get(web_url).text)
 ```
-[code](push_examples/web/c_hello_versioned.py)
+[code](pushpy_examples/web/c_hello_versioned.py)
 
 ```
-$ python3 $PUSH_HOME/push/push_examples/web/c_hello_versioned.py
+$ python3 $PUSH_HOME/push/pushpy_examples/web/c_hello_versioned.py
 ```
 
 Output
@@ -148,28 +148,28 @@ hello, world!!!! head=[0]
 _a note on notation: 'repl' is used to denote 'replicated'_
 
 - Web: Tornado based examples showing code loading via code store path
-  - [Hello, World](push_examples/web/c_hello.py)
-  - [Versioned Hello, World](push_examples/web/c_hello_versioned.py)
+  - [Hello, World](pushpy_examples/web/c_hello.py)
+  - [Versioned Hello, World](pushpy_examples/web/c_hello_versioned.py)
 - Code repo: Showing how the vdict is used to store and version code
-  - [import](push_examples/code_repo/import)
-  - [export](push_examples/code_repo/export)
-  - [versioning](push_examples/code_repo/c_versions.py)
-  - [module loader](push_examples/code_repo/c_module.py)
-- [Versioned Dictionary (vdict)](push_examples/versioned_dict)
-- [Tasks](push_examples/tasks)
-  - [daemon](push_examples/tasks/daemon)
-    - [local](push_examples/tasks/daemon/local)
-      - [Hello, World](push_examples/tasks/daemon/local/c_hello.py)
-      - [module](push_examples/tasks/daemon/local/c_module.py)
-    - [replicated](push_examples/tasks/daemon/c_repl.py)
-  - [lambda](push_examples/tasks/lambda)
-  - [schedule](push_examples/tasks/schedule)
-  - [scope](push_examples/tasks/scope)
+  - [import](pushpy_examples/code_repo/import)
+  - [export](pushpy_examples/code_repo/export)
+  - [versioning](pushpy_examples/code_repo/c_versions.py)
+  - [module loader](pushpy_examples/code_repo/c_module.py)
+- [Versioned Dictionary (vdict)](pushpy_examples/versioned_dict)
+- [Tasks](pushpy_examples/tasks)
+  - [daemon](pushpy_examples/tasks/daemon)
+    - [local](pushpy_examples/tasks/daemon/local)
+      - [Hello, World](pushpy_examples/tasks/daemon/local/c_hello.py)
+      - [module](pushpy_examples/tasks/daemon/local/c_module.py)
+    - [replicated](pushpy_examples/tasks/daemon/c_repl.py)
+  - [lambda](pushpy_examples/tasks/lambda)
+  - [schedule](pushpy_examples/tasks/schedule)
+  - [scope](pushpy_examples/tasks/scope)
 - Queues
-- [Timeseries](push_examples/timeseries)
+- [Timeseries](pushpy_examples/timeseries)
   - simple
   - partitioned handlers
-- [REPL](push/push_repl.py)
+- [REPL](pushpy/push_repl.py)
 
 
 
@@ -186,7 +186,7 @@ The following example shows the dynamic module system being able to load a modul
 code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
 
 ```python
-from push_examples.ex_push_manager import ExamplePushManager
+from pushpy_examples.ex_push_manager import ExamplePushManager
 from simple_interpreter import Multiplier, Adder, Interpreter
 
 m = ExamplePushManager()
@@ -275,7 +275,7 @@ $ ./secondary-2.sh up
 Start example cluster and launch REPL.
 ```bash
 $ export PUSH_HOME=`pwd`
-$ ./push/deploy/push_examples/bare/run_cluster.sh
+$ ./pushpy/deploy/pushpy_examples/bare/run_cluster.sh
 > hosts
 ['localhost:50000', 'localhost:50001', 'localhost:50002']
 >>> @localhost:50000

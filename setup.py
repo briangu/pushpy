@@ -1,5 +1,5 @@
 from setuptools import setup
-import push
+import pushpy
 
 description = 'A library for enabling dynamic distributed python deployment'
 try:
@@ -10,9 +10,9 @@ except(IOError, ImportError, RuntimeError):
     long_description = description
 
 setup(
-    name='push',
-    packages=['push', 'push_examples'],
-    version=push.__version__,
+    name='pushpy',
+    packages=['pushpy', 'pushpy_examples'],
+    version=pushpy.__version__,
     description=description,
     long_description=long_description,
     author='Brian Guarraci',
@@ -31,8 +31,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'push_repl=push.push_repl:main',
-            'push_server=push.push_server:main',
+            'push_repl=pushpy.push_repl:main',
+            'push_server=pushpy.push_server:main',
         ],
     },
 )

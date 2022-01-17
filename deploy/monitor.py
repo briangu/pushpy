@@ -12,9 +12,9 @@ import daemon
 import daemon.pidfile
 
 # adapted from https://raw.githubusercontent.com/ggmartins/dataengbb/master/python/daemon/daemon1
-from push.code_utils import ensure_path, load_and_run
+from pushpy.code_utils import ensure_path, load_and_run
 
-PATHCTRL = '/tmp/push'  # path to control files pid and lock
+PATHCTRL = '/tmp/pushpy'  # path to control files pid and lock
 parser = argparse.ArgumentParser(prog="monitor")
 
 sp = parser.add_subparsers()
