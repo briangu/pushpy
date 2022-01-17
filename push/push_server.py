@@ -18,6 +18,7 @@ def main(config_fname=None):
     from push.push_server_utils import load_config, serve_forever, host_to_address
 
     if config_fname is None:
+        import sys
         config_fname = sys.argv[1]
 
     config = load_config(config_fname)
