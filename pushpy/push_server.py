@@ -61,6 +61,7 @@ def main(config_fname=None):
 
     repl_hosts = ReplLockDataManager(autoUnlockTime=5)
     boot_globals, web_router = boot_mod.main()
+    print(boot_globals)
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
     sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=SyncObjConf(dynamicMembershipChange=True))
 

@@ -1,5 +1,6 @@
 version: '1'
-boot_source_uri: 'file:///scm/push/pushpy_examples/ex_boot.py'
+bootstrap:
+    boot_source_uri: 'file:///scm/push/pushpy_examples/ex_boot.py'
 hostname: 'push-tf-3'
 manager:
     auth_key: 'password'
