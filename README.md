@@ -96,7 +96,7 @@ is changed, it will automatically be used.
 import requests
 import tornado.web
 
-from pushpy_examples.ex_push_manager import ExamplePushManager
+from pushpy_examples.client.ex_push_manager import ExamplePushManager
 
 m = ExamplePushManager()
 m.connect()
@@ -128,7 +128,7 @@ print(requests.get(web_url).text)
 repl_code_store.set_head(version=repl_code_store.get_head() - 1, sync=True)
 print(requests.get(web_url).text)
 ```
-[code](pushpy_examples/web/c_hello_versioned.py)
+[code](pushpy_examples/client/web/c_hello_versioned.py)
 
 ```
 $ python3 $PUSH_HOME/push/pushpy_examples/web/c_hello_versioned.py
@@ -148,25 +148,25 @@ hello, world!!!! head=[0]
 _a note on notation: 'repl' is used to denote 'replicated'_
 
 - Web: Tornado based examples showing code loading via code store path
-  - [Hello, World](pushpy_examples/web/c_hello.py)
-  - [Versioned Hello, World](pushpy_examples/web/c_hello_versioned.py)
+  - [Hello, World](pushpy_examples/client/web/c_hello.py)
+  - [Versioned Hello, World](pushpy_examples/client/web/c_hello_versioned.py)
 - Code repo: Showing how the vdict is used to store and version code
-  - [import](pushpy_examples/code_repo/import)
-  - [export](pushpy_examples/code_repo/export)
-  - [versioning](pushpy_examples/code_repo/c_versions.py)
-  - [module loader](pushpy_examples/code_repo/c_module.py)
-- [Versioned Dictionary (vdict)](pushpy_examples/versioned_dict)
-- [Tasks](pushpy_examples/tasks)
-  - [daemon](pushpy_examples/tasks/daemon)
-    - [local](pushpy_examples/tasks/daemon/local)
-      - [Hello, World](pushpy_examples/tasks/daemon/local/c_hello.py)
-      - [module](pushpy_examples/tasks/daemon/local/c_module.py)
-    - [replicated](pushpy_examples/tasks/daemon/c_repl.py)
-  - [lambda](pushpy_examples/tasks/lambda)
-  - [schedule](pushpy_examples/tasks/schedule)
-  - [scope](pushpy_examples/tasks/scope)
+  - [import](pushpy_examples/client/code_repo/import)
+  - [export](pushpy_examples/client/code_repo/export)
+  - [versioning](pushpy_examples/client/code_repo/c_versions.py)
+  - [module loader](pushpy_examples/client/code_repo/c_module.py)
+- [Versioned Dictionary (vdict)](pushpy_examples/client/versioned_dict)
+- [Tasks](pushpy_examples/client/tasks)
+  - [daemon](pushpy_examples/client/tasks/daemon)
+    - [local](pushpy_examples/client/tasks/daemon/local)
+      - [Hello, World](pushpy_examples/client/tasks/daemon/local/c_hello.py)
+      - [module](pushpy_examples/client/tasks/daemon/local/c_module.py)
+    - [replicated](pushpy_examples/client/tasks/daemon/c_repl.py)
+  - [lambda](pushpy_examples/client/tasks/lambda)
+  - [schedule](pushpy_examples/client/tasks/schedule)
+  - [scope](pushpy_examples/client/tasks/scope)
 - Queues
-- [Timeseries](pushpy_examples/timeseries)
+- [Timeseries](pushpy_examples/client/timeseries)
   - simple
   - partitioned handlers
 - [REPL](pushpy/push_repl.py)
@@ -186,8 +186,8 @@ The following example shows the dynamic module system being able to load a modul
 code interpreter classes and then update them.  They can be loaded either directly via import or implicitly via the task manager.
 
 ```python
-from pushpy_examples.ex_push_manager import ExamplePushManager
-from simple_interpreter import Multiplier, Adder, Interpreter
+from pushpy_examples.client.ex_push_manager import ExamplePushManager
+from client.simple_interpreter import Multiplier, Adder, Interpreter
 
 m = ExamplePushManager()
 m.connect()
