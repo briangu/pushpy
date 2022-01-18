@@ -1,3 +1,0 @@
-[console_scripts]
-push_repl = push.push_repl:main
-
