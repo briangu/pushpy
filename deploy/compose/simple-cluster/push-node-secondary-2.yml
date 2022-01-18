@@ -10,9 +10,9 @@ services:
       - '11002'
       - '50002'
     env_file:
-      - ./envs/push.env
+      - ../envs/push.env
     volumes:
-      - ./conf/push.bootstrap.conf.yml:/opt/push/conf/push.conf.yml
+      - ../conf/push.bootstrap.conf.yml:/opt/push/conf/push.conf.yml
       - $PUSH_HOME:/scm/push
     command: ["push_server", "/opt/push/conf/push.conf.yml"]
     network_mode: host
