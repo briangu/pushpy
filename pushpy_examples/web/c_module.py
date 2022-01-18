@@ -19,6 +19,7 @@ repl_code_store.update({
 class MathHandler(tornado.web.RequestHandler):
     def post(self):
         import json
+        from boot_common import local_tasks
         ops = json.loads(self.request.body.decode("utf-8"))
 
         # execute via the task manager

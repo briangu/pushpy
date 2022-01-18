@@ -13,6 +13,7 @@ web_url = "http://localhost:11000/"
 
 class HelloWorldHandler(tornado.web.RequestHandler):
     def get(self):
+        from boot_common import repl_code_store
         self.write(f"hello, world!!!! head=[{repl_code_store.get_head()}]\n")
 
 
@@ -22,6 +23,7 @@ print(requests.get(web_url).text)
 
 class HelloWorldHandler2(tornado.web.RequestHandler):
     def get(self):
+        from boot_common import repl_code_store
         self.write(f"Hello, World! (v2) head=[{repl_code_store.get_head()}]\n")
 
 # update and change to v2

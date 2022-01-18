@@ -16,6 +16,7 @@ np.random.seed(0)
 
 
 def process_ts_updates(idx_data, keys, data):
+    from boot_common import get_partition_info
     cluster_size, partition_id, host_resources = get_partition_info()
     if cluster_size == 0:
         return

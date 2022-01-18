@@ -16,7 +16,7 @@ services:
     volumes:
       - ./conf/push.conf.1.yml:/opt/push/conf/push.conf.yml
       - $PUSH_HOME:/scm/push
-    command: ["python","/scm/push/pushpy/push_server.py /opt/push/conf/push.conf.yml"]
+    command: ["push_server", "/opt/push/conf/push.conf.yml"]
 
   push-tf-2:
     container_name: "push-tf-2"
@@ -34,7 +34,7 @@ services:
       - $PUSH_HOME:/scm/push
     depends_on:
       - push-tf-1
-    command: ["python","/scm/push/pushpy/push_server.py /opt/push/conf/push.conf.yml"]
+    command: ["push_server", "/opt/push/conf/push.conf.yml"]
 
   push-tf-3:
     container_name: "push-tf-3"
@@ -52,7 +52,7 @@ services:
       - $PUSH_HOME:/scm/push
     depends_on:
       - push-tf-1
-    command: ["python","/scm/push/pushpy/push_server.py /opt/push/conf/push.conf.yml"]
+    command: ["push_server", "/opt/push/conf/push.conf.yml"]
 
   nginx:
     container_name: "push_nginx"

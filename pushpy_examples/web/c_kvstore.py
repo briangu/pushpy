@@ -12,6 +12,7 @@ repl_code_store = m.repl_code_store()
 # curl localhost:11000/kv?k=my_key
 class StoreHandler(tornado.web.RequestHandler):
     def get(self):
+        from boot_common import repl_kvstore
         if 'k' in self.request.arguments:
             k = self.request.arguments['k'][0].decode('utf-8')
             self.write(str(repl_kvstore.get(k)))
@@ -22,6 +23,7 @@ class StoreHandler(tornado.web.RequestHandler):
 
     def put(self):
         import json
+        from boot_common import repl_kvstore
         body = json.loads(self.request.body)
         k = body.get('k')
         v = body.get('v')

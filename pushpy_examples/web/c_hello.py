@@ -11,6 +11,7 @@ repl_code_store = m.repl_code_store()
 # curl localhost:11000/
 class HelloWorldHandler(tornado.web.RequestHandler):
     def get(self):
+        from boot_common import repl_code_store
         self.write(f"hello, world!!!! [{repl_code_store.get_head()}]\n")
 
 

@@ -14,6 +14,7 @@ repl_code_store = m.repl_code_store()
 # curl localhost:11000/greeting?v=1
 class VersionedStoreHandler(tornado.web.RequestHandler):
     def get(self):
+        from boot_common import repl_ver_store
         if 'v' in self.request.arguments:
             v = self.request.arguments.get('v')[0].decode('utf-8')
             repl_ver_store.set_head(version=int(v), sync=True)
@@ -22,6 +23,7 @@ class VersionedStoreHandler(tornado.web.RequestHandler):
 
     def put(self):
         import json
+        from boot_common import repl_ver_store
         body = json.loads(self.request.body)
         greeting = body.get('greeting')
         if greeting is not None:
@@ -30,6 +32,7 @@ class VersionedStoreHandler(tornado.web.RequestHandler):
         self.finish()
 
     def delete(self):
+        from boot_common import repl_ver_store
         repl_ver_store.clear()
         self.finish()
 
