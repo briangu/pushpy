@@ -4,7 +4,7 @@ services:
     container_name: "push-tf-secondary-2"
     hostname: "push-tf-secondary-2"
     tty: true
-    image: eismcc/push-tensorflow-gpu:latest
+    image: eismcc/push-${PUSH_DEPLOY_TYPE}-tensorflow-gpu:latest
     expose:
       - '10002'
       - '11002'

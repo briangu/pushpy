@@ -42,6 +42,6 @@ RUN pip install -r /tmp/requirements.txt
 
 COPY entrypoint.sh /tmp/entrypoint.sh
 
-WORKDIR /scm 
+WORKDIR /tmp
 
 ENTRYPOINT ["/tmp/entrypoint.sh"]

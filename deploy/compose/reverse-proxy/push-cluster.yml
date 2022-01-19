@@ -4,7 +4,7 @@ services:
     container_name: "push-tf-1"
     hostname: "push-tf-1"
     tty: true
-    image: eismcc/push-tensorflow-gpu:latest
+    image: eismcc/push-${PUSH_DEPLOY_TYPE}-tensorflow-gpu:latest
     expose:
       - '10000'
       - '11000'
@@ -22,7 +22,7 @@ services:
     container_name: "push-tf-2"
     hostname: "push-tf-2"
     tty: true
-    image: eismcc/push-tensorflow-gpu:latest
+    image: eismcc/push-${PUSH_DEPLOY_TYPE}-tensorflow-gpu:latest
     expose:
       - '10000'
       - '11000'
@@ -40,7 +40,7 @@ services:
     container_name: "push-tf-3"
     hostname: "push-tf-3"
     tty: true
-    image: eismcc/push-tensorflow-gpu:latest
+    image: eismcc/push-${PUSH_DEPLOY_TYPE}-tensorflow-gpu:latest
     expose:
       - '10000'
       - '11000'
