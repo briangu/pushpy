@@ -1,13 +1,18 @@
+import io
 import json
 import os
 import sys
+import types
 import uuid
 import zipfile
 from json import JSONDecodeError
+from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
+from importlib.machinery import ModuleSpec
 from types import ModuleType
 
 import dill
 import requests
+
 
 # add support for kvstore module - call main?
 
@@ -19,29 +24,11 @@ import requests
 # exec(s, mod.__dict__)
 
 
+# https://docs.python.org/3/library/zipapp.html
 # python -m zipapp d -m 'lockd:main'
 # or if there's already a __main__.py then just
 # python -m zipapp d
 
-# def load_pyz(m):
-#     module = ModuleType('lock')
-#     context = module.__dict__.copy()
-#     with zipfile.ZipFile(m, "r") as zip_ref:
-#         # zip_ref.extractall('/tmp/process')
-#         order = list(zip_ref.namelist())
-#         print(order)
-#         while len(order) > 0:
-#             n = order.pop()
-#             print(n)
-#             if n == '__main__.py':
-#                 continue
-#             try:
-#                 print(context.keys())
-#                 exec(zip_ref.read(n), context)
-#             except Exception as e:
-#                 print(e)
-#                 order.insert(0, n)
-#     return context
 
 def ensure_path(p):
     import pathlib
@@ -74,75 +61,190 @@ def compile_source(t):
     return compile(t, str(uuid.uuid4()), "exec")
 
 
-def load_uri(u):
-    f = requests.get(u)
+def load_url(u):
+    return requests.get(u)
+
+
+def load_url_data(u):
+    return load_url(u).content
+
+
+def load_url_text(u):
+    f = load_url(u)
     try:
         return json.loads(f.text)
     except JSONDecodeError:
         return f.text
 
 
-def load_dir(tmp_path, m):
-    tmp_id = str(uuid.uuid4())
-    # print(tmp_path)
-    # tmp_path = os.path.join(tmp_path, 'pyz', str(tmp_id))
-    # ensure_path(tmp_path)
+def load_module_dir(m, name=None):
+    name = name or str(uuid.uuid4())
     sys.path.insert(0, m)
-    module = ModuleType(tmp_id)
-    context = module.__dict__.copy()
-    with open(os.path.join(m, "__main__.py"), "r") as f:
-        d = f.read()
     try:
-        exec(d, context)
-    except Exception as e:
-        print(f"FAILURE: {e}")
-        raise e
-    sys.path.pop(0)
-    return context
-
-
-def load_pyz(tmp_path, m):
-    tmp_id = str(uuid.uuid4())
-    tmp_path = os.path.join(tmp_path, 'pyz', str(tmp_id))
-    ensure_path(tmp_path)
-    sys.path.insert(0, tmp_path)
-    module = ModuleType(tmp_id)
-    context = module.__dict__.copy()
-    with zipfile.ZipFile(m, "r") as zip_ref:
-        zip_ref.extractall(tmp_path)
-        # TODO: call load_dir with extracted zip
+        module = ModuleType(name)
+        with open(os.path.join(m, "__main__.py"), "r") as f:
+            d = f.read()
         try:
-            exec(zip_ref.read("__main__.py"), context)
+            exec(d, module.__dict__)
         except Exception as e:
-            print(e)
+            print(f"FAILURE: {e}")
             raise e
-    sys.path.pop(0)
-    return context
+    finally:
+        sys.path.pop(0)
+    return module
 
 
-def load_py(m):
-    module = ModuleType(m)
-    context = module.__dict__.copy()
+class PyzLoader(_Loader):
+
+    def __init__(self, filename, fullname, data):
+        self.filename = filename
+        self.fullname = fullname
+        self.data = data
+
+    def create_module(self, spec):
+        mod = types.ModuleType(spec.name)
+        mod.__loader__ = self
+        mod.__package__ = spec.name
+        mod.__file__ = self.filename
+        mod.__path__ = [self.filename]
+        return mod
+
+    def exec_module(self, module):
+        try:
+            module.__dict__[module.__name__] = module  # TODO: is this needed?
+            exec(self.data, module.__dict__)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"failed to load: {e}")
+
+
+class PyzFinder(_MetaPathFinder):
+
+    def __init__(self, pyz_dict):
+        self.pyz_dict = pyz_dict
+
+    def find_module(self, fullname, path):
+        return self.find_spec(fullname, path)
+
+    def find_spec(self, fullname, path, target=None):
+        py_name = f"{fullname}.py"
+        if py_name in self.pyz_dict:
+            print(fullname, path)
+            return ModuleSpec(fullname, PyzLoader(py_name, fullname, self.pyz_dict[py_name]))
+        return None
+
+
+def load_module_pyz_loader(pyz_dict, name=None):
+    name = name or str(uuid.uuid4())
+    module = ModuleType(name)
+    # pyz_dict = {k: zip_ref.read(k) for k in zip_ref.namelist()}
+    finder = PyzFinder(pyz_dict)
+    sys.meta_path.insert(0, finder)
+    try:
+        exec(pyz_dict['__main__.py'], module.__dict__)
+    finally:
+        sys.meta_path.remove(finder)
+    return module
+
+
+def pyz_to_dict(m):
+    with zipfile.ZipFile(m, "r") as zip_ref:
+        return {k: zip_ref.read(k) for k in zip_ref.namelist()}
+
+
+def load_module_pyz_file(m, name=None):
+    return load_module_pyz_loader(pyz_to_dict(m), name)
+
+
+def load_module_uri(m):
+    if m.startswith("file://"):
+        trim_file = m[len("file://") + 1:]
+        return load_module(trim_file)
+    elif m.startswith("http://") or m.startswith("https://"):
+        return load_module_pyz_loader(pyz_to_dict(m), io.BytesIO(load_url_data(m)))
+
+
+# def load_module_pyz_inplace(m, name=None):
+#     import os
+#     name = name or str(uuid.uuid4())
+#     module = ModuleType(name)
+#     tmp_modules = sys.modules.copy()
+#     try:
+#         attempted = set()
+#         with zipfile.ZipFile(m, "r") as zip_ref:
+#             order = list(zip_ref.namelist())
+#             while len(order) > 0:
+#                 n = order.pop()
+#                 if n == '__main__.py':
+#                     if len(order) >= 1:
+#                         order.insert(0, n)
+#                     else:
+#                         exec(zip_ref.read(n), module.__dict__)
+#                 else:
+#                     try:
+#                         sub_module_name = os.path.splitext(n)[0]
+#                         sub_module = ModuleType(sub_module_name)
+#                         exec(zip_ref.read(n), sub_module.__dict__)
+#                         sys.modules[sub_module_name] = sub_module
+#                     except Exception as e:
+#                         if n not in attempted:
+#                             attempted.add(n)
+#                             order.insert(0, n)
+#                         else:
+#                             print(e)
+#                             raise
+#     finally:
+#         sys.modules = tmp_modules
+#     return module
+#
+#
+# def load_module_pyz(tmp_path, m, name=None):
+#     name = name or str(uuid.uuid4())
+#     tmp_path = os.path.join(tmp_path, 'pyz', str(name))
+#     ensure_path(tmp_path)
+#     sys.path.insert(0, tmp_path)
+#     try:
+#         module = ModuleType(name)
+#         with zipfile.ZipFile(m, "r") as zip_ref:
+#             zip_ref.extractall(tmp_path)
+#             # TODO: call load_dir with extracted zip
+#             try:
+#                 exec(zip_ref.read("__main__.py"), module.__dict__)
+#             except Exception as e:
+#                 print(e)
+#                 raise e
+#     finally:
+#         sys.path.pop(0)
+#     return module
+
+
+def load_module_py(m, name=None):
+    name = name or str(uuid.uuid4())
+    module = ModuleType(name)
     with open(m, "r") as f:
-        exec(f.read(), context)
-    return context
+        exec(f.read(), module.__dict__)
+    return module
 
 
 # TODO: make relative imports work
 # https://stackoverflow.com/questions/16981921/relative-imports-in-python-3
 # https://stackoverflow.com/questions/19850143/how-to-compile-a-string-of-python-code-into-a-module-whose-functions-can-be-call
-def load(tmp_path, m):
-    print(m)
-    if os.path.isdir(m):
-        return load_dir(tmp_path, m)
-    elif isinstance(m, str):
-        if m.endswith(".pyz"):
-            return load_pyz(tmp_path, m)
-        elif m.endswith(".py"):
-            return load_py(m)
+def load_module(m):
+    if isinstance(m, str):
+        if m.startswith("file://") or m.startswith("http://"):
+            return load_module_uri(m)
+        elif os.path.exists(m):
+            if os.path.isdir(m):
+                return load_module_dir(m)
+            elif m.endswith(".pyz"):
+                return load_module_pyz_file(m)
+            elif m.endswith(".py"):
+                return load_module_py(m)
+    return None
 
 
-def load_and_run(tmp_path, m, log, *args, **kwargs):
+def load_module_and_run(m, log, *args, **kwargs):
     if not os.path.exists(m):
         orig_m = m
         m = os.path.join(os.path.dirname(__file__), m)
@@ -151,13 +253,11 @@ def load_and_run(tmp_path, m, log, *args, **kwargs):
             log.error(f"module not found: {m}")
             raise RuntimeError(f"module not found: {m}")
     log.info(f"loading and running: {m}")
-    context = load(tmp_path, m)
-    print(context['main'])
-    # this will use the context provided in exec
-    if 'main' not in context:
+    module = load_module(m)
+    if 'main' not in module.__dict__:
         log.error(f"missing main function in module: {m}")
         raise RuntimeError(f"missing main function in module: {m}")
-    context['main'](*args, **kwargs)
+    module.__dict__['main'](*args, **kwargs)
 
 
 def create_in_memory_module(name=None):

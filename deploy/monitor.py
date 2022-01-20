@@ -12,7 +12,7 @@ import daemon
 import daemon.pidfile
 
 # adapted from https://raw.githubusercontent.com/ggmartins/dataengbb/master/python/daemon/daemon1
-from pushpy.code_utils import ensure_path, load_and_run
+from pushpy.code_utils import ensure_path, load_module_and_run
 
 PATHCTRL = '/tmp/pushpy'  # path to control files pid and lock
 parser = argparse.ArgumentParser(prog="monitor")
@@ -55,7 +55,7 @@ def main_thread(args, mainctrl, log):
     try:
         with open(main_path, "r") as f:
             module_name = f.read()
-        load_and_run(tmp_path, module_name, log, mainctrl)
+        load_module_and_run(module_name, log, mainctrl)
     except KeyboardInterrupt as ke:
         if verbose:
             log.warning("Interrupting...")
