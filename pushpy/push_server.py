@@ -12,7 +12,7 @@ def main(config_fname=None):
     from pysyncobj import SyncObjConf
 
     from pushpy.batteries import ReplLockDataManager
-    from pushpy.code_utils import load_in_memory_module, create_in_memory_module
+    from pushpy.code_store import load_in_memory_module, create_in_memory_module
     from pushpy.host_resources import HostResources, GPUResources, get_cluster_info, get_partition_info
     from pushpy.push_manager import PushManager
     from pushpy.push_server_utils import load_config, serve_forever, host_to_address

@@ -5,11 +5,8 @@ import os
 import socket
 import threading
 import time
-import types
 import weakref
 from collections import Mapping
-from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
-from importlib.machinery import ModuleSpec
 from typing import ValuesView, ItemsView
 
 import dill
@@ -205,112 +202,6 @@ class ReplVersionedDict(SyncObjConsumer, Mapping):
     @replicated
     def flatten(self):
         pass
-
-
-class PushLoader(_Loader):
-
-    def __init__(self, scope, store):
-        self.scope = scope
-        self.store = store
-
-    def create_module(self, spec):
-        mod = types.ModuleType(spec.name)
-        mod.__dict__['__push'] = True
-        mod.__loader__ = self
-        mod.__package__ = spec.name
-        mod.__file__ = spec.name
-        mod.__path__ = []
-        return mod
-
-    def exec_module(self, module):
-        try:
-            module.__dict__[module.__name__] = module
-            q = module.__name__[len(self.scope) + 1:]
-            for key in self.store.keys():
-                if key.startswith(q):
-                    module.__dict__[key.split('.')[-1]] = dill.loads(self.store[key])
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print(f"failed to load: {e}")
-
-
-class PushFinder(_MetaPathFinder):
-
-    def __init__(self, stores):
-        self.stores = stores
-
-    def find_module(self, fullname, path):
-        return self.find_spec(fullname, path)
-
-    def find_spec(self, fullname, path, target=None):
-        p = fullname.split(".")
-        if p[0] in self.stores:
-            print(f"PushFinder:Importing {fullname!r}")
-            return ModuleSpec(fullname, PushLoader(p[0], self.stores[p[0]]))
-        return None
-
-
-# useful helpers:
-# https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
-# https://realpython.com/python-import/#finders-and-loaders
-# https://bayesianbrad.github.io/posts/2017_loader-finder-python.html
-# https://realpython.com/python-import/
-# https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using
-class CodeStoreLoader:
-
-    @staticmethod
-    def load_github(store, key_prefix, repo):
-        from github import Github
-        g = Github()
-        repo = g.get_repo(repo)
-        contents = repo.get_contents("")
-        while contents:
-            file_content = contents.pop(0)
-            if file_content.type == "dir":
-                contents.extend(repo.get_contents(file_content.path))
-            else:
-                print(file_content.path)
-                # store.set(f"{key_prefix}file_content.path")
-
-    @staticmethod
-    def load_file(store, key_prefix, path):
-        pass
-
-    # @staticmethod
-    # def load_uri():
-
-    # handles:
-    #   file: (file or dir), http:, github:<user>/<repo>
-    @staticmethod
-    def load(store, uri):
-        pass
-
-    @staticmethod
-    def export_dir(store, path, version=None):
-        pass
-
-    @staticmethod
-    def load_dir(store, path):
-        pass
-
-    @staticmethod
-    def install_importer(stores, enable_debug=True):
-        import sys
-
-        class DebugFinder(_MetaPathFinder):
-            @classmethod
-            def find_spec(cls, name, path, target=None):
-                print(f"Importing {name!r}")
-                return None
-
-        finder = PushFinder(stores)
-
-        sys.meta_path.insert(0, finder)
-        if enable_debug:
-            sys.meta_path.insert(0, DebugFinder())
-
-        return finder
 
 
 class ReplTaskManager(SyncObjConsumer):

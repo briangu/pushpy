@@ -1,33 +1,33 @@
+from __future__ import print_function
+
 import io
 import json
 import os
 import sys
 import types
+import typing
 import uuid
 import zipfile
-from json import JSONDecodeError
 from importlib.abc import Loader as _Loader, MetaPathFinder as _MetaPathFinder
 from importlib.machinery import ModuleSpec
+from json import JSONDecodeError
 from types import ModuleType
 
 import dill
 import requests
 
 
+# https://docs.python.org/3/library/zipapp.html
+# python -m zipapp d -m 'lockd:main'
+# or if there's already a __main__.py then just
+# python -m zipapp d
+
 # add support for kvstore module - call main?
-
-
 # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
 # import importlib
 # mod = imp.new_module('ciao')
 # sys.modules['ciao'] = mod
 # exec(s, mod.__dict__)
-
-
-# https://docs.python.org/3/library/zipapp.html
-# python -m zipapp d -m 'lockd:main'
-# or if there's already a __main__.py then just
-# python -m zipapp d
 
 
 def ensure_path(p):
@@ -43,6 +43,7 @@ def compile_file_path(m):
 
 
 def compile_file_uri(m):
+    # TODO: use proper URI parser
     return compile_file_path(m[len("file://"):])
 
 
@@ -53,6 +54,7 @@ def compile_uri(u):
     return co
 
 
+# TODO: use proper URI parser
 def compile_source(t):
     if t.startswith("file://"):
         return compile_file_uri(t)
@@ -77,24 +79,7 @@ def load_url_text(u):
         return f.text
 
 
-def load_module_dir(m, name=None):
-    name = name or str(uuid.uuid4())
-    sys.path.insert(0, m)
-    try:
-        module = ModuleType(name)
-        with open(os.path.join(m, "__main__.py"), "r") as f:
-            d = f.read()
-        try:
-            exec(d, module.__dict__)
-        except Exception as e:
-            print(f"FAILURE: {e}")
-            raise e
-    finally:
-        sys.path.pop(0)
-    return module
-
-
-class PyzLoader(_Loader):
+class DictLoader(_Loader):
 
     def __init__(self, filename, fullname, data):
         self.filename = filename
@@ -111,7 +96,7 @@ class PyzLoader(_Loader):
 
     def exec_module(self, module):
         try:
-            module.__dict__[module.__name__] = module  # TODO: is this needed?
+            module.__dict__[module.__name__] = self.filename
             exec(self.data, module.__dict__)
         except Exception as e:
             import traceback
@@ -119,19 +104,19 @@ class PyzLoader(_Loader):
             print(f"failed to load: {e}")
 
 
-class PyzFinder(_MetaPathFinder):
+class DictFinder(_MetaPathFinder):
 
-    def __init__(self, pyz_dict):
-        self.pyz_dict = pyz_dict
+    def __init__(self, mod_dict):
+        self.mod_dict = mod_dict
 
     def find_module(self, fullname, path):
         return self.find_spec(fullname, path)
 
     def find_spec(self, fullname, path, target=None):
-        py_name = f"{fullname}.py"
-        if py_name in self.pyz_dict:
+        # py_name = f"{fullname}.py"
+        if fullname in self.mod_dict:
             print(fullname, path)
-            return ModuleSpec(fullname, PyzLoader(py_name, fullname, self.pyz_dict[py_name]))
+            return ModuleSpec(fullname, DictLoader(fullname, fullname, self.mod_dict[fullname]))
         return None
 
 
@@ -139,7 +124,7 @@ def load_module_pyz_loader(pyz_dict, name=None):
     name = name or str(uuid.uuid4())
     module = ModuleType(name)
     # pyz_dict = {k: zip_ref.read(k) for k in zip_ref.namelist()}
-    finder = PyzFinder(pyz_dict)
+    finder = DictFinder(pyz_dict)
     sys.meta_path.insert(0, finder)
     try:
         exec(pyz_dict['__main__.py'], module.__dict__)
@@ -162,6 +147,8 @@ def load_module_uri(m):
         trim_file = m[len("file://") + 1:]
         return load_module(trim_file)
     elif m.startswith("http://") or m.startswith("https://"):
+        # TODO: add whitelist for domains, etc. to minimize abuse
+        # TODO: validate pyz data
         return load_module_pyz_loader(pyz_to_dict(m), io.BytesIO(load_url_data(m)))
 
 
@@ -217,6 +204,84 @@ def load_module_uri(m):
 #     finally:
 #         sys.path.pop(0)
 #     return module
+
+
+# convert a directory structure of py modules into a dictionary for loading
+# a
+#   b
+#     c
+#       c1.py
+#       c2.py
+#       c3.py
+#       d
+#          d1.py
+#          d2.py
+#
+# translates to
+#
+# {
+#   'c': {
+#     'c1.py': <c1.py>
+#     'c2.py': <c2.py>
+#     'c3.py': <c3.py>
+#     'd': {
+#       'd1': <d1.py>,
+#       'd2': <d1.py>
+#     }
+#   }
+# }
+def dir_to_dict(root_dir):
+    d = {}
+    s: typing.List[typing.Dict] = [d]
+    last_depth = len((os.path.normpath(root_dir)).split(os.path.sep))
+
+    for root, directories, filenames in os.walk(root_dir):
+        norm_path = os.path.normpath(root)
+        path_parts = norm_path.split(os.path.sep)
+        depth = len(path_parts)
+        if depth < last_depth:
+            s.pop()
+        last_depth = depth
+        parent = s[-1]
+        child = {}
+        child_name = os.path.splitext(path_parts[-1])[0]
+        parent[child_name] = child
+        if len(directories) > 0:
+            s.append(child)
+        for filename in filenames:
+            if filename.endswith(".py"):
+                with open(os.path.join(root, filename), "r") as f:
+                    child_item_name = os.path.splitext(filename)[0]
+                    child[child_item_name] = f.read()
+
+    return d
+
+
+def show_dict(d, level=0):
+    indent = ' ' * 4 * level
+    for k, v in d.items():
+        if isinstance(v, dict):
+            print('{}{}{}'.format(indent, os.path.sep, k))
+            show_dict(v, level=level+1)
+        else:
+            print('{}{}'.format(indent, k))
+
+
+def load_module_dir(m, name=None):
+    name = name or str(uuid.uuid4())
+    sys.path.insert(0, m)
+    try:
+        module = ModuleType(name)
+        with open(os.path.join(m, "__main__.py"), "r") as f:
+            d = f.read()
+        try:
+            exec(d, module.__dict__)
+        except Exception as e:
+            print(f"FAILURE: {e}")
+            raise e
+    finally:
+        sys.path.pop(0)
+    return module
 
 
 def load_module_py(m, name=None):
@@ -328,3 +393,109 @@ class KvStoreLambda:
                 src(*args, **kwargs)
             except Exception as e:
                 print(e)
+
+
+class PushLoader(_Loader):
+
+    def __init__(self, scope, store):
+        self.scope = scope
+        self.store = store
+
+    def create_module(self, spec):
+        mod = types.ModuleType(spec.name)
+        mod.__dict__['__push'] = True
+        mod.__loader__ = self
+        mod.__package__ = spec.name
+        mod.__file__ = spec.name
+        mod.__path__ = []
+        return mod
+
+    def exec_module(self, module):
+        try:
+            module.__dict__[module.__name__] = module
+            q = module.__name__[len(self.scope) + 1:]
+            for key in self.store.keys():
+                if key.startswith(q):
+                    module.__dict__[key.split('.')[-1]] = dill.loads(self.store[key])
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"failed to load: {e}")
+
+
+class PushFinder(_MetaPathFinder):
+
+    def __init__(self, stores):
+        self.stores = stores
+
+    def find_module(self, fullname, path):
+        return self.find_spec(fullname, path)
+
+    def find_spec(self, fullname, path, target=None):
+        p = fullname.split(".")
+        if p[0] in self.stores:
+            print(f"PushFinder:Importing {fullname!r}")
+            return ModuleSpec(fullname, PushLoader(p[0], self.stores[p[0]]))
+        return None
+
+
+# useful helpers:
+# https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
+# https://realpython.com/python-import/#finders-and-loaders
+# https://bayesianbrad.github.io/posts/2017_loader-finder-python.html
+# https://realpython.com/python-import/
+# https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using
+class CodeStoreLoader:
+
+    @staticmethod
+    def load_github(store, key_prefix, repo):
+        from github import Github
+        g = Github()
+        repo = g.get_repo(repo)
+        contents = repo.get_contents("")
+        while contents:
+            file_content = contents.pop(0)
+            if file_content.type == "dir":
+                contents.extend(repo.get_contents(file_content.path))
+            else:
+                print(file_content.path)
+                # store.set(f"{key_prefix}file_content.path")
+
+    @staticmethod
+    def load_file(store, key_prefix, path):
+        pass
+
+    # @staticmethod
+    # def load_uri():
+
+    # handles:
+    #   file: (file or dir), http:, github:<user>/<repo>
+    @staticmethod
+    def load(store, uri):
+        pass
+
+    @staticmethod
+    def export_dir(store, path, version=None):
+        pass
+
+    @staticmethod
+    def load_dir(store, path):
+        pass
+
+    @staticmethod
+    def install_finder(stores, enable_debug=True):
+        import sys
+
+        class DebugFinder(_MetaPathFinder):
+            @classmethod
+            def find_spec(cls, name, path, target=None):
+                print(f"Importing {name!r}")
+                return None
+
+        finder = PushFinder(stores)
+
+        sys.meta_path.insert(0, finder)
+        if enable_debug:
+            sys.meta_path.insert(0, DebugFinder())
+
+        return finder

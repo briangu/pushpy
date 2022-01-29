@@ -12,8 +12,8 @@ from pysyncobj import SyncObjConsumer, replicated
 from pysyncobj.batteries import ReplList
 from tornado.routing import Router
 
-from pushpy.batteries import ReplEventDict, ReplVersionedDict, ReplTaskManager, CodeStoreLoader
-from pushpy.code_utils import load_src
+from pushpy.batteries import ReplEventDict, ReplVersionedDict, ReplTaskManager
+from pushpy.code_store import load_src, CodeStoreLoader
 from pushpy.push_manager import PushManager
 from pushpy.task_manager import TaskManager
 
@@ -102,7 +102,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
 
     code_store_name = "repl_code_store"
 
-    finder = CodeStoreLoader.install_importer({code_store_name: repl_code_store})
+    finder = CodeStoreLoader.install_finder({code_store_name: repl_code_store})
 
     def invalidate_caches(head):
         print(f"reloading push modules: head={head}")
