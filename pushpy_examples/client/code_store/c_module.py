@@ -19,9 +19,8 @@ repl_code_store.update(code, sync=True)
 ops = ['add', 'add', 1, 2, 'mul', 3, 4]
 
 def run_interp(x):
-#    from interpreter import Interpreter
-    import interpreter
-    return interpreter.Interpreter().apply(x)
+    from interpreter import Interpreter
+    return Interpreter().apply(x)
 
 # run task via this client
 r = local_tasks.apply(run_interp, ops)[0]

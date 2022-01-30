@@ -79,12 +79,12 @@ def load_url_text(u):
         return f.text
 
 
-class DictLoader(_Loader):
+class ValueLoader(_Loader):
 
-    def __init__(self, fullname, name, store):
+    def __init__(self, fullname, name, value):
         self.fullname = fullname
         self.name = name
-        self.store = store
+        self.value = value
 
     def create_module(self, spec):
         parts = self.fullname.split(".")
@@ -96,29 +96,30 @@ class DictLoader(_Loader):
         module.__path__ = parts
         return module
 
+    def apply_value(self, module, k, v):
+        if isinstance(v, bytes):
+            module.__dict__[k] = dill.loads(v)
+        elif isinstance(v, types.CodeType):
+            exec(v, module.__dict__)
+        elif isinstance(v, str):
+            v = compile(v, self.name, 'exec')
+            exec(v, module.__dict__)
+        elif isinstance(v, dict):
+            sub_mod_fullname = f"{self.fullname}.{k}"
+            dl = ValueLoader(sub_mod_fullname, k, v)
+            spec = ModuleSpec(sub_mod_fullname, dl)
+            m = dl.create_module(spec)
+            dl.exec_module(m)
+            module.__dict__[self.name] = m
+
+    # everything needs to be in exec_module so reloading works
     def exec_module(self, module):
-        print(f"module: {module.__name__}")
-        print(list(self.store.keys()))
-        print(self.name)
         try:
-            for k, v in self.store.items():
-                # print(k, type(v))
-                if isinstance(v, bytes):
-                    module.__dict__[k] = dill.loads(v)
-                elif isinstance(v, types.CodeType):
-                    exec(v, module.__dict__)
-                elif isinstance(v, str):
-                    v = compile(v, self.name, 'exec')
-                    exec(v, module.__dict__)
-                elif isinstance(v, dict):
-                    sub_mod_fullname = f"{self.fullname}.{k}"
-                    dl = DictLoader(sub_mod_fullname, k, v)
-                    spec = ModuleSpec(sub_mod_fullname, dl)
-                    m = dl.create_module(spec)
-                    dl.exec_module(m)
-                    module.__dict__[self.name] = m
-                else:
-                    raise ImportError(f"unsupported type: {type(v)} {v}")
+            if isinstance(self.value, dict):
+                for k, v in self.value.items():
+                    self.apply_value(module, k, v)
+            else:
+                self.apply_value(module, self.name, self.value)
         except ImportError as e:
             raise e
         except Exception as e:
@@ -140,7 +141,6 @@ class DictFinder(_MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
         parts = fullname.split(".")
         if len(parts) > 0 and parts[0] in self.store:
-            pruned_name = fullname
             d = self.store[parts[0]]
             s = list(reversed(parts[1:]))
             k = parts[0]
@@ -148,13 +148,13 @@ class DictFinder(_MetaPathFinder):
                 k = s.pop()
                 if k not in d:
                     return None
-                # TODO: support import leaf node (class, function, etc.) directly
-                if not isinstance(d[k], dict):
-                    pruned_name = ".".join(parts[:-1])
-                    break
                 d = d[k]
-            print(f"DictFinder: loading {fullname!r} {pruned_name} {k!r}")
-            return ModuleSpec(pruned_name, DictLoader(pruned_name, k, d))
+                if not isinstance(d, dict):
+                    break
+            print(f"DictFinder: loading {fullname!r} {k!r}")
+            loader = ValueLoader(fullname, k, d) if isinstance(d, dict) else ValueLoader(fullname, k, d)
+            return ModuleSpec(fullname, loader)
+
         return None
 
 
