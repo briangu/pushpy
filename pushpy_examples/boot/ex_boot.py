@@ -102,13 +102,16 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
 
     code_store_name = "repl_code_store"
 
-    finder = CodeStoreLoader.install_finder({code_store_name: repl_code_store})
+#    finder = CodeStoreLoader.install({code_store_name: repl_code_store})
+    finder = CodeStoreLoader.install(repl_code_store)
 
     def invalidate_caches(head):
         print(f"reloading push modules: head={head}")
         finder.invalidate_caches()
+        repl_packages = set(repl_code_store.keys())
         for key in list(sys.modules.keys()):
-            if key.startswith(code_store_name):
+            pkg = key.split(".")[0]
+            if pkg in repl_packages:
                 print(f"reloading module: {key}")
                 importlib.reload(sys.modules[key])
 

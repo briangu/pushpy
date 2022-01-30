@@ -81,43 +81,82 @@ def load_url_text(u):
 
 class DictLoader(_Loader):
 
-    def __init__(self, filename, fullname, data):
-        self.filename = filename
+    def __init__(self, fullname, name, store):
         self.fullname = fullname
-        self.data = data
+        self.name = name
+        self.store = store
 
     def create_module(self, spec):
-        mod = types.ModuleType(spec.name)
-        mod.__loader__ = self
-        mod.__package__ = spec.name
-        mod.__file__ = self.filename
-        mod.__path__ = [self.filename]
-        return mod
+        parts = self.fullname.split(".")
+        module = types.ModuleType(spec.name)
+        module.__dict__['__push__'] = True
+        module.__loader__ = self
+        module.__package__ = parts[0]
+        module.__file__ = spec.name
+        module.__path__ = parts
+        return module
 
     def exec_module(self, module):
+        print(f"module: {module.__name__}")
+        print(list(self.store.keys()))
+        print(self.name)
         try:
-            module.__dict__[module.__name__] = self.filename
-            exec(self.data, module.__dict__)
+            for k, v in self.store.items():
+                # print(k, type(v))
+                if isinstance(v, bytes):
+                    module.__dict__[k] = dill.loads(v)
+                elif isinstance(v, types.CodeType):
+                    exec(v, module.__dict__)
+                elif isinstance(v, str):
+                    v = compile(v, self.name, 'exec')
+                    exec(v, module.__dict__)
+                elif isinstance(v, dict):
+                    sub_mod_fullname = f"{self.fullname}.{k}"
+                    dl = DictLoader(sub_mod_fullname, k, v)
+                    spec = ModuleSpec(sub_mod_fullname, dl)
+                    m = dl.create_module(spec)
+                    dl.exec_module(m)
+                    module.__dict__[self.name] = m
+                else:
+                    raise ImportError(f"unsupported type: {type(v)} {v}")
+        except ImportError as e:
+            raise e
         except Exception as e:
             import traceback
             traceback.print_exc()
             print(f"failed to load: {e}")
+            raise ImportError(f"unable to import {module.__name__}")
 
 
 class DictFinder(_MetaPathFinder):
 
-    def __init__(self, mod_dict):
-        self.mod_dict = mod_dict
+    def __init__(self, store, store_name=None):
+        self.store = store
+        self.store_name = store_name
 
     def find_module(self, fullname, path):
         return self.find_spec(fullname, path)
 
     def find_spec(self, fullname, path, target=None):
-        # py_name = f"{fullname}.py"
-        if fullname in self.mod_dict:
-            print(fullname, path)
-            return ModuleSpec(fullname, DictLoader(fullname, fullname, self.mod_dict[fullname]))
+        parts = fullname.split(".")
+        if len(parts) > 0 and parts[0] in self.store:
+            pruned_name = fullname
+            d = self.store[parts[0]]
+            s = list(reversed(parts[1:]))
+            k = parts[0]
+            while len(s) > 0:
+                k = s.pop()
+                if k not in d:
+                    return None
+                # TODO: support import leaf node (class, function, etc.) directly
+                if not isinstance(d[k], dict):
+                    pruned_name = ".".join(parts[:-1])
+                    break
+                d = d[k]
+            print(f"DictFinder: loading {fullname!r} {pruned_name} {k!r}")
+            return ModuleSpec(pruned_name, DictLoader(pruned_name, k, d))
         return None
+
 
 
 def load_module_pyz_loader(pyz_dict, name=None):
@@ -150,60 +189,6 @@ def load_module_uri(m):
         # TODO: add whitelist for domains, etc. to minimize abuse
         # TODO: validate pyz data
         return load_module_pyz_loader(pyz_to_dict(m), io.BytesIO(load_url_data(m)))
-
-
-# def load_module_pyz_inplace(m, name=None):
-#     import os
-#     name = name or str(uuid.uuid4())
-#     module = ModuleType(name)
-#     tmp_modules = sys.modules.copy()
-#     try:
-#         attempted = set()
-#         with zipfile.ZipFile(m, "r") as zip_ref:
-#             order = list(zip_ref.namelist())
-#             while len(order) > 0:
-#                 n = order.pop()
-#                 if n == '__main__.py':
-#                     if len(order) >= 1:
-#                         order.insert(0, n)
-#                     else:
-#                         exec(zip_ref.read(n), module.__dict__)
-#                 else:
-#                     try:
-#                         sub_module_name = os.path.splitext(n)[0]
-#                         sub_module = ModuleType(sub_module_name)
-#                         exec(zip_ref.read(n), sub_module.__dict__)
-#                         sys.modules[sub_module_name] = sub_module
-#                     except Exception as e:
-#                         if n not in attempted:
-#                             attempted.add(n)
-#                             order.insert(0, n)
-#                         else:
-#                             print(e)
-#                             raise
-#     finally:
-#         sys.modules = tmp_modules
-#     return module
-#
-#
-# def load_module_pyz(tmp_path, m, name=None):
-#     name = name or str(uuid.uuid4())
-#     tmp_path = os.path.join(tmp_path, 'pyz', str(name))
-#     ensure_path(tmp_path)
-#     sys.path.insert(0, tmp_path)
-#     try:
-#         module = ModuleType(name)
-#         with zipfile.ZipFile(m, "r") as zip_ref:
-#             zip_ref.extractall(tmp_path)
-#             # TODO: call load_dir with extracted zip
-#             try:
-#                 exec(zip_ref.read("__main__.py"), module.__dict__)
-#             except Exception as e:
-#                 print(e)
-#                 raise e
-#     finally:
-#         sys.path.pop(0)
-#     return module
 
 
 # convert a directory structure of py modules into a dictionary for loading
@@ -395,49 +380,25 @@ class KvStoreLambda:
                 print(e)
 
 
-class PushLoader(_Loader):
-
-    def __init__(self, scope, store):
-        self.scope = scope
-        self.store = store
-
-    def create_module(self, spec):
-        mod = types.ModuleType(spec.name)
-        mod.__dict__['__push'] = True
-        mod.__loader__ = self
-        mod.__package__ = spec.name
-        mod.__file__ = spec.name
-        mod.__path__ = []
-        return mod
-
-    def exec_module(self, module):
-        try:
-            module.__dict__[module.__name__] = module
-            q = module.__name__[len(self.scope) + 1:]
-            for key in self.store.keys():
-                if key.startswith(q):
-                    module.__dict__[key.split('.')[-1]] = dill.loads(self.store[key])
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print(f"failed to load: {e}")
-
-
-class PushFinder(_MetaPathFinder):
-
-    def __init__(self, stores):
-        self.stores = stores
-
-    def find_module(self, fullname, path):
-        return self.find_spec(fullname, path)
-
-    def find_spec(self, fullname, path, target=None):
-        p = fullname.split(".")
-        if p[0] in self.stores:
-            print(f"PushFinder:Importing {fullname!r}")
-            return ModuleSpec(fullname, PushLoader(p[0], self.stores[p[0]]))
-        return None
-
+# helper to make creating package trees from flat package names:
+# packages_to_dict({'a.I': 1, 'a.m.A': 2, 'a.m.M': 3})
+# -->
+# {'a': {'I': 1}, 'm': {'A': 2, 'M': 3}}
+def packages_to_dict(pmap):
+    d = {}
+    for p, v in pmap.items():
+        parts = p.split(".")
+        s = list(reversed(parts[:-1]))
+        q = d
+        while len(s) > 0:
+            m = s.pop()
+            r = q.get(m)
+            if r is None:
+                r = {}
+                q[m] = r
+            q = r
+        q[parts[-1]] = v
+    return d
 
 # useful helpers:
 # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory
@@ -447,43 +408,29 @@ class PushFinder(_MetaPathFinder):
 # https://stackoverflow.com/questions/43571737/how-to-implement-an-import-hook-that-can-modify-the-source-code-on-the-fly-using
 class CodeStoreLoader:
 
-    @staticmethod
-    def load_github(store, key_prefix, repo):
-        from github import Github
-        g = Github()
-        repo = g.get_repo(repo)
-        contents = repo.get_contents("")
-        while contents:
-            file_content = contents.pop(0)
-            if file_content.type == "dir":
-                contents.extend(repo.get_contents(file_content.path))
-            else:
-                print(file_content.path)
-                # store.set(f"{key_prefix}file_content.path")
-
-    @staticmethod
-    def load_file(store, key_prefix, path):
-        pass
-
     # @staticmethod
-    # def load_uri():
+    # def load_file(store, key_prefix, path):
+    #     pass
+    #
+    # # @staticmethod
+    # # def load_uri():
+    #
+    # # handles:
+    # #   file: (file or dir), http:, github:<user>/<repo>
+    # @staticmethod
+    # def load(store, uri):
+    #     pass
+    #
+    # @staticmethod
+    # def export_dir(store, path, version=None):
+    #     pass
+    #
+    # @staticmethod
+    # def load_dir(store, path):
+    #     pass
 
-    # handles:
-    #   file: (file or dir), http:, github:<user>/<repo>
     @staticmethod
-    def load(store, uri):
-        pass
-
-    @staticmethod
-    def export_dir(store, path, version=None):
-        pass
-
-    @staticmethod
-    def load_dir(store, path):
-        pass
-
-    @staticmethod
-    def install_finder(stores, enable_debug=True):
+    def install(stores, enable_debug=False):
         import sys
 
         class DebugFinder(_MetaPathFinder):
@@ -492,7 +439,7 @@ class CodeStoreLoader:
                 print(f"Importing {name!r}")
                 return None
 
-        finder = PushFinder(stores)
+        finder = DictFinder(stores)
 
         sys.meta_path.insert(0, finder)
         if enable_debug:

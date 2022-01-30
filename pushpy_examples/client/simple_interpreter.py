@@ -10,7 +10,7 @@ class Adder:
 
 class Interpreter:
     def apply(self, ops, i=None):
-        from repl_code_store.interpreter.math import Adder, Multiplier
+        from interpreter.math import Adder, Multiplier
         i = 0 if i is None else i
         while i < len(ops):
             op = ops[i]

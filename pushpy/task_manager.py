@@ -2,6 +2,8 @@ import threading
 import uuid
 from queue import Queue, Empty
 
+import dill
+
 from pushpy.code_store import load_lambda, KvStoreLambda
 
 
@@ -15,7 +17,7 @@ class TaskContext:
         self.thread = thread
 
 
-# TODO: add ability to store result of code_repo store lambda in kvstore
+# TODO: add ability to store result of code_store store lambda in kvstore
 class TaskManager:
 
     def __init__(self, code_store):
@@ -54,8 +56,12 @@ class TaskManager:
 
     # TODO: do we need context?
     def apply(self, src, *args, ctx=None, **kwargs):
-        src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
-        src = load_lambda(self.code_store, src)
+        # print(src)
+        # src = (src if src.startswith("repl_code_store.") else f"repl_code_store.{src}") if isinstance(src, str) else src
+        # src = load_lambda(self.code_store, src)
+        if not isinstance(src, bytes):
+            raise RuntimeError("lambda is not code")
+        src = dill.loads(src)
         if src is not None:
             # ctx = ctx.copy() if ctx is not None else {}
             # ctx.update({'src': src, 'args': args, 'kwargs': kwargs})
@@ -70,6 +76,10 @@ class TaskManager:
             #     return e
             try:
                 try:
+                    if isinstance(src, type):
+                        src = src()
+                        if hasattr(src, 'apply'):
+                            src = src.apply
                     if callable(src):
                         return src(*args, **kwargs)
                     ctx = globals().copy()
