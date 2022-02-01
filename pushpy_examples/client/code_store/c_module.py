@@ -24,6 +24,10 @@ r = local_tasks.apply(run_interp, ops)[0]
 print(r)
 assert r == 15
 
+repl_code_store.set("run_interp", run_interp, sync=True)
+r = local_tasks.apply("run_interp", ops)[0]
+print(r)
+assert r == 15
 
 class Adder2(Adder):
     def apply(self, a, b):
@@ -35,6 +39,9 @@ r = local_tasks.apply("interpreter.Interpreter", ops)[0]
 print(r)
 assert r == 36
 
+r = local_tasks.apply("run_interp", ops)[0]
+print(r)
+assert r == 36
 
 class InterpreterWrapper:
     def apply(self, ops):
