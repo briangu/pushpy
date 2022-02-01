@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import argparse
 import logging
@@ -12,7 +13,7 @@ import daemon
 import daemon.pidfile
 
 # adapted from https://raw.githubusercontent.com/ggmartins/dataengbb/master/python/daemon/daemon1
-from pushpy.code_store import ensure_path, load_module_and_run
+from pushpy.code_store import ensure_path, load_module
 
 PATHCTRL = '/tmp/pushpy'  # path to control files pid and lock
 parser = argparse.ArgumentParser(prog="monitor")
@@ -175,3 +176,19 @@ if hasattr(args, 'callback'):
     args.callback(args)
 else:
     parser.print_help()
+
+
+def load_module_and_run(m, log, *args, **kwargs):
+    if not os.path.exists(m):
+        orig_m = m
+        m = os.path.join(os.path.dirname(__file__), m)
+        log.warn(f"{orig_m} not found, using current dir for {m}")
+        if not os.path.exists(m):
+            log.error(f"module not found: {m}")
+            raise RuntimeError(f"module not found: {m}")
+    log.info(f"loading and running: {m}")
+    module = load_module(m)
+    if 'main' not in module.__dict__:
+        log.error(f"missing main function in module: {m}")
+        raise RuntimeError(f"missing main function in module: {m}")
+    module.__dict__['main'](*args, **kwargs)

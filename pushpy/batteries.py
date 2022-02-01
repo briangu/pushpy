@@ -48,7 +48,7 @@ class ReplEventDict(ReplDict):
 #   obj['/']
 #   obj.get("/")
 
-# TODO: grab a lock for commit transaction otherwise a seperate process can
+# TODO: grab a lock for commit transaction otherwise a separate process can
 class ReplVersionedDict(SyncObjConsumer, Mapping):
 
     def __init__(self, on_head_change=None):
@@ -214,8 +214,7 @@ class ReplTaskManager(SyncObjConsumer):
     # TODO: we should provide another way to store results as replicated actions would all store into the same key
     @replicated
     def apply(self, src, *args, **kwargs):
-        ctx = self.kvstore.rawData().copy()
-        return self.task_manager.apply(src, *args, ctx=ctx, **kwargs)
+        return self.task_manager.apply(src, *args, **kwargs)
 
 
 # Similar to _ReplLockManagerImpl but supports data bound to the lock

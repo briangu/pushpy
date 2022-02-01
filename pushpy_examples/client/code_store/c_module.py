@@ -1,4 +1,3 @@
-from pushpy.code_store import packages_to_dict, show_dict
 from pushpy_examples.client.ex_push_manager import ExamplePushManager
 from pushpy_examples.client.simple_interpreter import Multiplier, Adder, Interpreter
 
@@ -8,13 +7,11 @@ m.connect()
 local_tasks = m.local_tasks()
 
 repl_code_store = m.repl_code_store()
-code = packages_to_dict({
+repl_code_store.update({
     "interpreter.Interpreter": Interpreter,
     "interpreter.math.Adder": Adder,
     "interpreter.math.Multiplier": Multiplier
-})
-show_dict(code)
-repl_code_store.update(code, sync=True)
+}, sync=True)
 
 ops = ['add', 'add', 1, 2, 'mul', 3, 4]
 
@@ -33,14 +30,8 @@ class Adder2(Adder):
         print("using adder v2")
         return (a + b) * 2
 
-
-code2 = packages_to_dict({
-    "interpreter.Interpreter": Interpreter,
-    "interpreter.math.Adder": Adder2,
-    "interpreter.math.Multiplier": Multiplier
-})
-repl_code_store.update(code2, sync=True)
-r = local_tasks.apply(run_interp, ops)[0]
+repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
+r = local_tasks.apply("interpreter.Interpreter", ops)[0]
 print(r)
 assert r == 36
 

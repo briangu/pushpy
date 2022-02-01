@@ -30,6 +30,28 @@ import requests
 # exec(s, mod.__dict__)
 
 
+
+# helper to make creating package trees from flat package names:
+# packages_to_dict({'a.I': 1, 'a.m.A': 2, 'a.m.M': 3})
+# -->
+# {'a': {'I': 1}, 'm': {'A': 2, 'M': 3}}
+def packages_to_dict(pmap):
+    d = {}
+    for p, v in pmap.items():
+        parts = p.split(".")
+        s = list(reversed(parts[:-1]))
+        q = d
+        while len(s) > 0:
+            m = s.pop()
+            r = q.get(m)
+            if r is None:
+                r = {}
+                q[m] = r
+            q = r
+        q[parts[-1]] = v
+    return d
+
+
 def ensure_path(p):
     import pathlib
     pathlib.Path(p).mkdir(parents=True, exist_ok=True)
@@ -131,17 +153,22 @@ class ValueLoader(_Loader):
 
 class DictFinder(_MetaPathFinder):
 
-    def __init__(self, store, store_name=None):
+    def __init__(self, store):
         self.store = store
-        self.store_name = store_name
+        self.cache_store = None
+        self.__build_key_cache()
 
     def find_module(self, fullname, path):
         return self.find_spec(fullname, path)
 
+    def __build_key_cache(self):
+        self.cache_store = packages_to_dict(self.store)
+        show_dict(self.cache_store)
+
     def find_spec(self, fullname, path, target=None):
         parts = fullname.split(".")
-        if len(parts) > 0 and parts[0] in self.store:
-            d = self.store[parts[0]]
+        if len(parts) > 0 and parts[0] in self.cache_store:
+            d = self.cache_store[parts[0]]
             s = list(reversed(parts[1:]))
             k = parts[0]
             while len(s) > 0:
@@ -151,12 +178,14 @@ class DictFinder(_MetaPathFinder):
                 d = d[k]
                 if not isinstance(d, dict):
                     break
-            print(f"DictFinder: loading {fullname!r} {k!r}")
             loader = ValueLoader(fullname, k, d) if isinstance(d, dict) else ValueLoader(fullname, k, d)
             return ModuleSpec(fullname, loader)
 
         return None
 
+    def invalidate_caches(self):
+        print(f"DictFinder: invalidating cache")
+        self.__build_key_cache()
 
 
 def load_module_pyz_loader(pyz_dict, name=None):
@@ -282,6 +311,7 @@ def load_module_py(m, name=None):
 # https://stackoverflow.com/questions/19850143/how-to-compile-a-string-of-python-code-into-a-module-whose-functions-can-be-call
 def load_module(m):
     if isinstance(m, str):
+        # TODO: move to provider / handler plugin model so that these handlers are not baked into the core
         if m.startswith("file://") or m.startswith("http://"):
             return load_module_uri(m)
         elif os.path.exists(m):
@@ -292,22 +322,6 @@ def load_module(m):
             elif m.endswith(".py"):
                 return load_module_py(m)
     return None
-
-
-def load_module_and_run(m, log, *args, **kwargs):
-    if not os.path.exists(m):
-        orig_m = m
-        m = os.path.join(os.path.dirname(__file__), m)
-        log.warn(f"{orig_m} not found, using current dir for {m}")
-        if not os.path.exists(m):
-            log.error(f"module not found: {m}")
-            raise RuntimeError(f"module not found: {m}")
-    log.info(f"loading and running: {m}")
-    module = load_module(m)
-    if 'main' not in module.__dict__:
-        log.error(f"missing main function in module: {m}")
-        raise RuntimeError(f"missing main function in module: {m}")
-    module.__dict__['main'](*args, **kwargs)
 
 
 def create_in_memory_module(name=None):
@@ -378,27 +392,6 @@ class KvStoreLambda:
                 src(*args, **kwargs)
             except Exception as e:
                 print(e)
-
-
-# helper to make creating package trees from flat package names:
-# packages_to_dict({'a.I': 1, 'a.m.A': 2, 'a.m.M': 3})
-# -->
-# {'a': {'I': 1}, 'm': {'A': 2, 'M': 3}}
-def packages_to_dict(pmap):
-    d = {}
-    for p, v in pmap.items():
-        parts = p.split(".")
-        s = list(reversed(parts[:-1]))
-        q = d
-        while len(s) > 0:
-            m = s.pop()
-            r = q.get(m)
-            if r is None:
-                r = {}
-                q[m] = r
-            q = r
-        q[parts[-1]] = v
-    return d
 
 # useful helpers:
 # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory

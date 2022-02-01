@@ -108,12 +108,14 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     def invalidate_caches(head):
         print(f"reloading push modules: head={head}")
         finder.invalidate_caches()
-        repl_packages = set(repl_code_store.keys())
+        repl_packages = set(finder.cache_store.keys())
+        # TODO: reloading modules that may run against modules that are still old has to have problems at some point
+        #       do we just flush them out of sys.modules and reload on demand?
         for key in list(sys.modules.keys()):
             pkg = key.split(".")[0]
             if pkg in repl_packages:
-                print(f"reloading module: {key}")
                 importlib.reload(sys.modules[key])
+                print(f"reloading module: {key}")
 
     repl_code_store.on_head_change = invalidate_caches
 
