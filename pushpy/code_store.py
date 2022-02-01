@@ -347,18 +347,10 @@ def load_in_memory_module(src, name=None):
 
 def load_src(kvstore, src):
     if isinstance(src, str):
-        if src.startswith("kvstore:"):
-            p = src.split(":")
-            src = kvstore.get(p[1])
-            if src is None:
-                return None
-            src = dill.loads(src)
-        else:
-            # TODO: should we attempt dill.loads here?
-            # TODO: what do we with do a URI src?
-            # src = compile_source(src)
+        src = kvstore.get(src)
+        if src is None:
             return None
-    elif isinstance(src, bytes):
+    if isinstance(src, bytes):
         src = dill.loads(src)
     return src
 

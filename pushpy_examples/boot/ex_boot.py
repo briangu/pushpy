@@ -62,7 +62,7 @@ class MyRouter(Router):
     def __init__(self, store, app, prefix=None):
         self.store = store
         self.app = app
-        self.prefix = f"kvstore:{prefix or '/web'}"
+        self.prefix = prefix or '/web'
 
     def find_handler(self, request, **kwargs):
         try:

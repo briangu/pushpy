@@ -2,8 +2,6 @@ import threading
 import uuid
 from queue import Queue, Empty
 
-import dill
-
 from pushpy.code_store import load_lambda, KvStoreLambda
 
 
@@ -55,7 +53,6 @@ class TaskManager:
         self.start_daemon(self.on_event_daemon, self.event_handler_map)
 
     def apply(self, src, *args, **kwargs):
-        src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
         src = load_lambda(self.code_store, src)
         if src is None:
             raise RuntimeError("lambda is not code")
@@ -69,9 +66,8 @@ class TaskManager:
             return e
 
     # TODO: pass args, kwargs to task thread
-    # TODO: construct a task runtime context based on ctx
-    def start_daemon(self, src, *args, ctx=None, **kwargs):
-        src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
+    # TODO: construct a task runtime context based on provided ctx
+    def start_daemon(self, src, *args, **kwargs):
         name = kwargs.pop("name", None)
         name = name or str(uuid.uuid4())
         if name in self.task_threads:
@@ -90,8 +86,8 @@ class TaskManager:
         self.task_threads[name].thread.join(timeout=10)
         del self.task_threads[name]
 
-    def run(self, task_type, src, *args, ctx=None, **kwargs):
+    def run(self, task_type, src, *args, **kwargs):
         if task_type == "daemon":
-            self.start_daemon(src, *args, ctx=ctx, **kwargs)
+            self.start_daemon(src, *args, **kwargs)
         elif task_type == "lambda":
-            return self.apply(src, *args, ctx=ctx, **kwargs)
+            return self.apply(src, *args, **kwargs)
