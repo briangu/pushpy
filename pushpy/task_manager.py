@@ -54,33 +54,16 @@ class TaskManager:
     def start_event_handlers(self):
         self.start_daemon(self.on_event_daemon, self.event_handler_map)
 
-    # TODO: do we need context?
     def apply(self, src, *args, **kwargs):
         src = (src if src.startswith("kvstore:") else f"kvstore:{src}") if isinstance(src, str) else src
         src = load_lambda(self.code_store, src)
         if src is None:
             raise RuntimeError("lambda is not code")
-        # ctx = ctx.copy() if ctx is not None else {}
-        # ctx.update({'src': src, 'args': args, 'kwargs': kwargs})
-        #
-        # # TOOD: support lambda requirements
-        # # exec('import math', ctx)
-        # try:
-        #     exec(f"__r = src(*args, **kwargs)", ctx)
-        #     return ctx['__r']
-        # except Exception as e:
-        #     print(e)
-        #     return e
         try:
-            if isinstance(src, type):
-                src = src()
-                if hasattr(src, 'apply'):
-                    src = src.apply
-            if callable(src):
-                return src(*args, **kwargs)
-            ctx = globals().copy()
-            exec("from boot_common import *", ctx)
-            return eval(src, ctx)
+            ctx = {'src': src, 'args': args, 'kwargs': kwargs}
+            statements = ["from boot_common import *", "__r = src(*args, **kwargs)"]
+            exec("\n".join(statements), ctx)
+            return ctx['__r']
         except Exception as e:
             print(e)
             return e
