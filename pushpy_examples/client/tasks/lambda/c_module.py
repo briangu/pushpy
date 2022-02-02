@@ -1,5 +1,5 @@
 from pushpy_examples.client.ex_push_manager import ExamplePushManager
-from client.simple_interpreter import Multiplier, Adder, Interpreter
+from pushpy_examples.client.simple_interpreter import Multiplier, Adder, Interpreter
 
 m = ExamplePushManager()
 m.connect()

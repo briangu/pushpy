@@ -58,9 +58,17 @@ class TaskManager:
             raise RuntimeError("lambda is not code")
         try:
             ctx = {'src': src, 'args': args, 'kwargs': kwargs}
-            statements = ["from boot_common import *", "__r = src(*args, **kwargs)"]
-            exec("\n".join(statements), ctx)
-            return ctx['__r']
+#            exec("from boot_common import *", ctx) # can be cached
+            x = exec("""
+from boot_common import *
+from types import LambdaType
+if isinstance(src, LambdaType):
+    __x = lambda:0
+    __x.__code__ = src.__code__
+else:
+    __x = src
+""", ctx)
+            return eval("__x(*args, **kwargs)", ctx)
         except Exception as e:
             print(e)
             return e

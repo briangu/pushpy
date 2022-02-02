@@ -125,11 +125,11 @@ def main(config_fname=None):
     boot_common = create_in_memory_module(name="boot_common")
 
     for k, v in boot_globals.items():
-        globals()[k] = v
+#        globals()[k] = v
         boot_common.__dict__[k] = v
         if k.startswith("repl_") or k.startswith("local_"):
             # https://stackoverflow.com/questions/2295290/what-do-lambda-function-closures-capture
-            PushManager.register(k, callable=lambda q=k: globals()[q])
+            PushManager.register(k, callable=lambda vv=v: vv)
 
     print(f"registering host: {sync_obj.selfNode.id}")
     sync_obj.waitReady()
