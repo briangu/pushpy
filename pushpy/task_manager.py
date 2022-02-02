@@ -23,6 +23,17 @@ class TaskManager:
         self.task_threads = dict()
         self.queue = Queue()
         self.event_handler_map = {}
+        self.__apply_fn__ = compile("""
+from boot_common import *
+from types import LambdaType
+# remap lambda code object into a locally defined lambda to get access to the globals
+if isinstance(src, LambdaType):
+    __x = lambda:0
+    __x.__code__ = src.__code__
+else:
+    __x = src
+""", "<string>", "exec")
+
 
     def clear_events(self):
         while not self.queue.empty():
@@ -58,16 +69,7 @@ class TaskManager:
             raise RuntimeError("lambda is not code")
         try:
             ctx = {'src': src, 'args': args, 'kwargs': kwargs}
-#            exec("from boot_common import *", ctx) # can be cached
-            x = exec("""
-from boot_common import *
-from types import LambdaType
-if isinstance(src, LambdaType):
-    __x = lambda:0
-    __x.__code__ = src.__code__
-else:
-    __x = src
-""", ctx)
+            exec(self.__apply_fn__, ctx)
             return eval("__x(*args, **kwargs)", ctx)
         except Exception as e:
             print(e)
