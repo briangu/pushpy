@@ -100,9 +100,7 @@ def main() -> (typing.List[object], typing.Dict[str, object]):
     repl_strategies = ReplList()
     repl_task_manager = ReplTaskManager(repl_kvstore, tm)
 
-    code_store_name = "repl_code_store"
-
-#    finder = CodeStoreLoader.install({code_store_name: repl_code_store})
+    # the code store will be directly used for imports, where the keys are the resolvable package names
     finder = CodeStoreLoader.install(repl_code_store)
 
     def invalidate_caches(head):
