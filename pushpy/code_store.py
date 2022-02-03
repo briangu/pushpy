@@ -372,7 +372,7 @@ class KvStoreLambda:
 
     def __init__(self, kvstore, key):
         self.kvstore = kvstore
-        self.key = f"kvstore:{key}"
+        self.key = key
 
     def __call__(self, *args, **kwargs):
         self.apply(*args, **kwargs)
