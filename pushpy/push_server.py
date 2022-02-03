@@ -61,7 +61,6 @@ def main(config_fname=None):
 
     repl_hosts = ReplLockDataManager(autoUnlockTime=5)
     boot_globals, web_router = boot_mod.main()
-    print(boot_globals)
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
     sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=SyncObjConf(dynamicMembershipChange=True))
 
@@ -125,7 +124,6 @@ def main(config_fname=None):
     boot_common = create_in_memory_module(name="boot_common")
 
     for k, v in boot_globals.items():
-#        globals()[k] = v
         boot_common.__dict__[k] = v
         if k.startswith("repl_") or k.startswith("local_"):
             # https://stackoverflow.com/questions/2295290/what-do-lambda-function-closures-capture
