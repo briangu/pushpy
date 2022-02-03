@@ -15,7 +15,6 @@ class TaskContext:
         self.thread = thread
 
 
-# TODO: add ability to store result of code_store store lambda in kvstore
 class TaskManager:
 
     def __init__(self, code_store):
@@ -23,26 +22,6 @@ class TaskManager:
         self.task_threads = dict()
         self.queue = Queue()
         self.event_handler_map = {}
-        self.__apply_fn__ = compile("""
-from boot_common import *
-from types import LambdaType
-# remap lambda code object into a locally defined lambda to get access to the globals
-if isinstance(src, bytes):
-    import dill
-    src = dill.loads(src)
-if isinstance(src, LambdaType):
-    __x = lambda:0
-    __x.__code__ = src.__code__
-else:
-    if isinstance(src, type):
-        try:
-            src = src()
-            src = src.apply if hasattr(src, 'apply') else src
-        except Exception as e:
-            print(e)
-            raise e
-    __x = src
-""", "<string>", "exec")
 
     def clear_events(self):
         while not self.queue.empty():
@@ -77,9 +56,8 @@ else:
         if src is None:
             raise RuntimeError("lambda is not code")
         try:
-            ctx = {'src': src, 'args': args, 'kwargs': kwargs}
-            exec(self.__apply_fn__, ctx)
-            return eval("__x(*args, **kwargs)", ctx)
+            exec("from boot_common import *", src.__globals__)
+            return eval("src(*args, **kwargs)", {'src': src, 'args': args, 'kwargs': kwargs})
         except Exception as e:
             print(e)
             return e
