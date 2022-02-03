@@ -27,13 +27,22 @@ class TaskManager:
 from boot_common import *
 from types import LambdaType
 # remap lambda code object into a locally defined lambda to get access to the globals
+if isinstance(src, bytes):
+    import dill
+    src = dill.loads(src)
 if isinstance(src, LambdaType):
     __x = lambda:0
     __x.__code__ = src.__code__
 else:
+    if isinstance(src, type):
+        try:
+            src = src()
+            src = src.apply if hasattr(src, 'apply') else src
+        except Exception as e:
+            print(e)
+            raise e
     __x = src
 """, "<string>", "exec")
-
 
     def clear_events(self):
         while not self.queue.empty():

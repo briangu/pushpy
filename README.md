@@ -154,7 +154,7 @@ _a note on notation: 'repl' is used to denote 'replicated'_
   - [import](pushpy_examples/client/code_store/import)
   - [export](pushpy_examples/client/code_store/export)
   - [versioning](pushpy_examples/client/code_store/c_versions.py)
-  - [module loader](pushpy_examples/client/code_store/c_module.py)
+  - [module loader](pushpy_examples/client/tasks/lambda/c_module.py)
 - [Versioned Dictionary (vdict)](pushpy_examples/client/versioned_dict)
 - [Tasks](pushpy_examples/client/tasks)
   - [daemon](pushpy_examples/client/tasks/daemon)

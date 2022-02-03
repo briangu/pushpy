@@ -350,20 +350,20 @@ def load_src(kvstore, src):
         src = kvstore.get(src)
         if src is None:
             return None
-    if isinstance(src, bytes):
-        src = dill.loads(src)
+    # if isinstance(src, bytes):
+    #     src = dill.loads(src)
     return src
 
 
 def load_lambda(kvstore, src):
     src = load_src(kvstore, src)
-    if isinstance(src, type):
-        try:
-            src = src()
-            src = src.apply if hasattr(src, 'apply') else src
-        except Exception as e:
-            print(e)
-            raise e
+    # if isinstance(src, type):
+    #     try:
+    #         src = src()
+    #         src = src.apply if hasattr(src, 'apply') else src
+    #     except Exception as e:
+    #         print(e)
+    #         raise e
     return src
 
 

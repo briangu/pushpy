@@ -13,8 +13,43 @@ repl_code_store.update({
     "interpreter.math.Multiplier": Multiplier
 }, sync=True)
 
+ops = ['add', 'add', 1, 2, 'mul', 3, 4]
+
+def run_interp(x):
+    from interpreter import Interpreter
+    return Interpreter().apply(x)
+
 # run task via this client
-commands = ['add', 'add', 1, 2, 'mul', 3, 4]
-print("local", local_tasks.apply("interpreter.Interpreter", commands)[0])
-repl_tasks = m.repl_tasks()
-print("repl", repl_tasks.apply("interpreter.Interpreter", commands, sync=True)[0])
+r = local_tasks.apply(run_interp, ops)[0]
+print(r)
+assert r == 15
+
+repl_code_store.set("run_interp", run_interp, sync=True)
+r = local_tasks.apply("run_interp", ops)[0]
+print(r)
+assert r == 15
+
+class Adder2(Adder):
+    def apply(self, a, b):
+        print("using adder v2")
+        return (a + b) * 2
+
+repl_code_store.set("interpreter.math.Adder", Adder2, sync=True)
+r = local_tasks.apply("interpreter.Interpreter", ops)[0]
+print(r)
+assert r == 36
+
+r = local_tasks.apply("run_interp", ops)[0]
+print(r)
+assert r == 36
+
+class InterpreterWrapper:
+    def apply(self, ops):
+        print("InterpreterWrapper")
+        from interpreter import Interpreter
+        return Interpreter().apply(ops)
+
+
+r = local_tasks.apply(InterpreterWrapper, ops)[0]
+print(r)
+assert r == 36
