@@ -15,7 +15,7 @@ class ScheduleTask:
             print(f"I'm working...{time.time()}")
 
         schedule.clear()
-        schedule.every(30).seconds.do(job)
+        schedule.every(5).seconds.do(job)
         # schedule.every(10).minutes.do(job)
         # schedule.every().hour.do(job)
         # schedule.every().day.at("10:30").do(job)
@@ -36,6 +36,6 @@ dt = m.local_tasks()
 dt.stop("schedule_task")
 dt.run("daemon", src="schedule_task", name="schedule_task")
 
-time.sleep(300)
+time.sleep(30)
 
 dt.stop("schedule_task")
