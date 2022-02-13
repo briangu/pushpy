@@ -1,20 +1,11 @@
 TODO
 
-On head change event
-  Invalidate module cache for push finder
-
 - add push config to store secrets, etc.
-- break up examples into topics to illustrate different features
-- create docker/monitor folder
 - Add support for dynamic hosts
 - Move python finder/loader to separate lib and add dict test
 - fix reconnect for base manager
 - add task routing based on host requirements
 - ReplVersionedDict
-  - add ReplVersionedDict event hook to reload modules 
-    - on_head_change
-    - add code reloading capability ?
-  - add item/value views for versioned dict
   - implement flatten
 - add code import / export tools
   - github
@@ -33,3 +24,11 @@ On head change event
 DONE
 - [x] REPL
 - [x] work out the task relationship to global context - can they just write into the repl_ structs?
+- [x] On head change event invalidate module cache for push finder
+- [x] break up examples into topics to illustrate different features
+- [x] create docker/monitor folder
+- [x] ReplVersionedDict
+  - add ReplVersionedDict event hook to reload modules 
+    - on_head_change
+    - add code reloading capability ?
+  - add item/value views for versioned dict
