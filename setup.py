@@ -11,7 +11,7 @@ except(IOError, ImportError, RuntimeError):
 
 setup(
     name='pushpy',
-    packages=['pushpy', 'pushpy_examples'],
+    packages=['pushpy'],
     version=pushpy.__version__,
     description=description,
     long_description=long_description,

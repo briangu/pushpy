@@ -1,9 +1,0 @@
-version: '1'
-boot_source_uri: 'http://localhost:8080/push/pushpy_examples/boot/ex_boot.py'
-manager:
-    auth_key: 'password'
-sync_obj:
-    port: 10000
-    peers:
-        - localhost:10001
-        - localhost:10002
