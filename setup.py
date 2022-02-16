@@ -20,6 +20,7 @@ setup(
     license='MIT',
     url='https://github.com/briangu/push',
     keywords=['network', 'replication', 'raft', 'synchronization', 'application'],
+    setup_requires=["wheel"],
     classifiers=[
         'Topic :: System :: Networking',
         'Topic :: System :: Distributed Computing',
