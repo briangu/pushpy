@@ -33,7 +33,7 @@ def main(config_fname=None):
         bootstrap_manager = PushManager(address=host_to_address(bootstrap_manager_host), authkey=manager_auth_key)
         bootstrap_manager.connect()
         bootstrap_primary = bootstrap_manager.bootstrap_peer()
-        peer_config = bootstrap_primary.get_config(base_host, default_base_port=10001)
+        peer_config = bootstrap_primary.get_config(base_host, default_base_port=10000)
         sync_obj_port = peer_config['base_port']
         sync_obj_peers = peer_config['sync_obj_config']['peers']
         sync_obj_password = peer_config['sync_obj_config']['password']
