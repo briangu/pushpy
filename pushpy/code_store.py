@@ -275,10 +275,13 @@ def show_dict(d, level=0):
     indent = ' ' * 4 * level
     for k, v in d.items():
         if isinstance(v, dict):
-            print('{}{}{}'.format(indent, os.path.sep, k))
+            if k.startswith(os.path.sep):
+                print(f'{indent}{k}')
+            else:
+                print(f'{indent}{os.path.sep}{k}')
             show_dict(v, level=level+1)
         else:
-            print('{}{}'.format(indent, k))
+            print(f'{indent}{k}')
 
 
 def load_module_dir(m, name=None):
