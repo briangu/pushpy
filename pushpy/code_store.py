@@ -272,7 +272,7 @@ def dir_to_dict(root_dir):
 
 
 def show_dict(d, level=0):
-    indent = ' ' * 4 * level
+    indent = ' ' * 2 * level
     for k, v in d.items():
         if isinstance(v, dict):
             if k.startswith(os.path.sep):

@@ -62,7 +62,7 @@ def main(config_fname=None):
     repl_hosts = ReplLockDataManager(autoUnlockTime=5)
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
-    sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=SyncObjConf(dynamicMembershipChange=True))
+    sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=SyncObjConf(dynamicMembershipChange=True, appendEntriesBatchSizeBytes=2**27))
 
     if bootstrap_primary is not None:
         print(f"adding self to cluster {sync_obj_host}")
