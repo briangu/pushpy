@@ -38,6 +38,9 @@ import requests
 def packages_to_dict(pmap):
     d = {}
     for p, v in pmap.items():
+        # ignore paths
+        if p.startswith("/"):
+            continue
         parts = p.split(".")
         s = list(reversed(parts[:-1]))
         q = d
