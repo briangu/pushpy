@@ -1,5 +1,6 @@
 from setuptools import setup
 import pushpy
+import os
 
 description = 'A library for enabling dynamic distributed python deployment'
 try:
@@ -8,6 +9,18 @@ try:
     long_description = pypandoc.convert('README.md', 'rst')
 except(IOError, ImportError, RuntimeError):
     long_description = description
+
+install_requires = [
+    'wheel',
+    'dill~=0.3.4',
+    'setuptools',
+    'requests~=2.26.0',
+    'tornado~=6.1',
+    'pysyncobj~=0.3.10',
+    'psutil~=5.8.0',
+    'GPUtil~=1.4.0',
+    'PyYaml~=6.0',
+    ]
 
 setup(
     name='pushpy',
@@ -20,6 +33,7 @@ setup(
     license='MIT',
     url='https://github.com/briangu/push',
     keywords=['network', 'replication', 'raft', 'synchronization', 'application'],
+    install_requires=install_requires,
     setup_requires=["wheel"],
     classifiers=[
         'Topic :: System :: Networking',
