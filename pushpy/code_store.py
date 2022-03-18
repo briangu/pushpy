@@ -30,7 +30,6 @@ import requests
 # exec(s, mod.__dict__)
 
 
-
 # helper to make creating package trees from flat package names:
 # packages_to_dict({'a.I': 1, 'a.m.A': 2, 'a.m.M': 3})
 # -->
@@ -279,7 +278,7 @@ def show_dict(d, level=0):
                 print(f'{indent}{k}')
             else:
                 print(f'{indent}{os.path.sep}{k}')
-            show_dict(v, level=level+1)
+            show_dict(v, level=level + 1)
         else:
             print(f'{indent}{k}')
 
@@ -387,6 +386,7 @@ class KvStoreLambda:
                 src(*args, **kwargs)
             except Exception as e:
                 print(e)
+
 
 # useful helpers:
 # https://stackoverflow.com/questions/1830727/how-to-load-compiled-python-modules-from-memory

@@ -1,3 +1,5 @@
+import os
+import re
 import threading
 from multiprocessing import process
 
@@ -26,7 +28,22 @@ def load_config(config_fname):
 
     with open(config_fname, "r") as stream:
         try:
-            return yaml.safe_load(stream)
+            path_matcher = re.compile(r'.*\$\{([^}^{]+)\}.*')
+
+            def path_constructor(loader, node):
+                return os.path.expandvars(node.value)
+
+            class EnvVarLoader(yaml.FullLoader):
+                pass
+
+            EnvVarLoader.add_implicit_resolver('!env', path_matcher, None)
+            EnvVarLoader.add_constructor('!env', path_constructor)
+
+            d = stream.read()
+            print(type(d))
+            print(d)
+
+            return yaml.load(d, Loader=EnvVarLoader)
         except yaml.YAMLError as exc:
             print(exc)
 
