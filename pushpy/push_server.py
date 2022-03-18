@@ -63,28 +63,27 @@ def main(config_fname=None):
     boot_globals, web_router = boot_mod.main()
     boot_consumers = [x for x in boot_globals.values() if isinstance(x, SyncObjConsumer) or hasattr(x, '_consumer')]
 
-    # drop_connections_list = []
+    drop_connections_list = []
 
     def on_state_change(oldState, newState):
-        pass
-        # print(f"on_state_change: {oldState} {newState}")
-        # if newState == 2:
-        #     for o in sync_obj.otherNodes:
-        #         if not sync_obj.isNodeConnected(o):
-        #             # print(f"removing disconnected node: {o.address}")
-        #             # sync_obj.removeNodeFromCluster("127.0.0.1:10000")
-        #             drop_connections_list.append(o)
+        print(f"on_state_change: {oldState} {newState}")
+        if newState == 2:
+            for o in sync_obj.otherNodes:
+                if not sync_obj.isNodeConnected(o):
+                    # print(f"removing disconnected node: {o.address}")
+                    # sync_obj.removeNodeFromCluster("127.0.0.1:10000")
+                    drop_connections_list.append(o)
 
-    # def drop_disconnected_peers():
-    #     # sync_obj.removeOnTickCallback(drop_disconnected_peers)
-    #     while(True):
-    #         if sync_obj._isLeader():
-    #             while len(drop_connections_list) > 0:
-    #                 o = drop_connections_list.pop()
-    #                 if not sync_obj.isNodeConnected(o):
-    #                     print(f"removing disconnected node: {o.address}")
-    #                     sync_obj.removeNodeFromCluster(o.id)
-    #         time.sleep(1)
+    def drop_disconnected_peers():
+        # sync_obj.removeOnTickCallback(drop_disconnected_peers)
+        while(True):
+            if sync_obj._isLeader():
+                while len(drop_connections_list) > 0:
+                    o = drop_connections_list.pop()
+                    if not sync_obj.isNodeConnected(o):
+                        print(f"removing disconnected node: {o.address}")
+                        sync_obj.removeNodeFromCluster(o.id)
+            time.sleep(1)
 
     sync_config = SyncObjConf(dynamicMembershipChange=True, onStateChanged=on_state_change)
     # sync_config.appendEntriesBatchSizeBytes = 2**27
@@ -93,9 +92,9 @@ def main(config_fname=None):
     sync_obj = SyncObj(sync_obj_host, sync_obj_peers, consumers=[repl_hosts, *boot_consumers], conf=sync_config)
     # sync_obj.addOnTickCallback(drop_disconnected_peers)
 
-    # import threading
-    # thread = threading.Thread(target=drop_disconnected_peers, daemon=True)
-    # thread.start()
+    import threading
+    thread = threading.Thread(target=drop_disconnected_peers, daemon=True)
+    thread.start()
 
     if bootstrap_primary is not None:
         print(f"adding self to cluster {sync_obj_host}")
