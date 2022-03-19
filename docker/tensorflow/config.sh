@@ -1,0 +1,2 @@
+DOCKER_IMAGE_MAINTAINER=eismcc
+DOCKER_IMAGE_NAME=pushpy-tensorflow-gpu
