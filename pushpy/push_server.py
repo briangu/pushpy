@@ -119,7 +119,10 @@ def main(config_fname=None):
             hosts = [sync_obj.selfNode, *connected_peers]
             host_port_map = self.get_host_map(hosts)
             host_ports = host_port_map.get(hostname, [])
-            host_port = max(host_ports) + 1 if default_base_port in host_ports else default_base_port
+            host_port = default_base_port + 1
+            while host_port in host_ports:
+                print(host_port, host_ports)
+                host_port += 1
             return {
                 "base_port": host_port,
                 "sync_obj_config": {
